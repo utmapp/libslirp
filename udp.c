@@ -326,7 +326,7 @@ int udp_attach(so) struct socket *so;
         addr.sin_addr.s_addr = INADDR_ANY;
         if (bind(so->s, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
             int lasterrno = errno;
-            close(so->s);
+            closesocket(so->s);
             so->s = -1;
             errno = lasterrno;
         } else {
@@ -340,7 +340,7 @@ int udp_attach(so) struct socket *so;
 
 void udp_detach(so) struct socket *so;
 {
-    close(so->s);
+    closesocket(so->s);
     /* if (so->so_m) m_free(so->so_m);    done by sofree */
 
     sofree(so);
@@ -516,7 +516,7 @@ struct mbuf *m;
             addr.sin_port = htons(518);
             sendto(s, (char *)nmsg, sizeof(*nmsg), 0, (struct sockaddr *)&addr,
                    sizeof(addr));
-            close(s);
+            closesocket(s);
 
             omsg->type = nmsg->type = ANNOUNCE;
             OTOSIN(omsg, ctl_addr)->sin_port = temp_port;
@@ -547,7 +547,7 @@ struct mbuf *m;
             addr.sin_port = htons(518);
             sendto(s, (char *)nmsg, sizeof(*nmsg), 0, (struct sockaddr *)&addr,
                    sizeof(addr));
-            close(s);
+            closesocket(s);
 
             OTOSIN(omsg, ctl_addr)->sin_port = temp_port;
             OTOSIN(nmsg, ctl_addr)->sin_port = temp_port;

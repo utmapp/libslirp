@@ -310,7 +310,7 @@ fork_exec(so, ex, do_pty)
 		    bind(s, (struct sockaddr *)&addr, addrlen) < 0 ||
 		    listen(s, 1) < 0) {
 			lprint("Error: inet socket: %s\n", strerror(errno));
-			close(s);
+			closesocket(s);
 			
 			return 0;
 		}
@@ -405,7 +405,7 @@ fork_exec(so, ex, do_pty)
 		 	 * of connect() fail in the child process
 		 	 */
 			so->s = accept(s, (struct sockaddr *)&addr, &addrlen);
-			close(s);
+			closesocket(s);
 			opt = 1;
 			setsockopt(so->s,SOL_SOCKET,SO_REUSEADDR,(char *)&opt,sizeof(int));
 			opt = 1;
@@ -779,7 +779,7 @@ void fd_nonblock(fd) int fd;
 #ifdef FIONBIO
     int opt = 1;
 
-    ioctl(fd, FIONBIO, &opt);
+    ioctlsocket(fd, FIONBIO, &opt);
 #else
     int opt;
 
@@ -794,7 +794,7 @@ void fd_block(fd) int fd;
 #ifdef FIONBIO
     int opt = 0;
 
-    ioctl(fd, FIONBIO, &opt);
+    ioctlsocket(fd, FIONBIO, &opt);
 #else
     int opt;
 
