@@ -295,7 +295,7 @@ int do_pty;
     /* don't want to clobber the original */
     char *bptr;
     char *curarg;
-    int c, i;
+    int c, i, ret;
 
     DEBUG_CALL("fork_exec");
     DEBUG_ARG("so = %lx", (long)so);
@@ -347,7 +347,9 @@ int do_pty;
              */
             s = socket(AF_INET, SOCK_STREAM, 0);
             addr.sin_addr = loopback_addr;
-            connect(s, (struct sockaddr *)&addr, addrlen);
+            do {
+                ret = connect(s, (struct sockaddr *)&addr, addrlen);
+            } while (ret < 0 && errno == EINTR);
         }
 
 #if 0
@@ -413,7 +415,9 @@ int do_pty;
              * The only reason this will block forever is if socket()
              * of connect() fail in the child process
              */
-            so->s = accept(s, (struct sockaddr *)&addr, &addrlen);
+            do {
+                so->s = accept(s, (struct sockaddr *)&addr, &addrlen);
+            } while (so->s < 0 && errno == EINTR);
             closesocket(s);
             opt = 1;
             setsockopt(so->s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt,
