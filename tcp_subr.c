@@ -1243,7 +1243,7 @@ int tcp_ctl(so) struct socket *so;
     int command;
     struct ex_list *ex_ptr;
     int do_pty;
-    struct socket *tmpso;
+    //	struct socket *tmpso;
 
     DEBUG_CALL("tcp_ctl");
     DEBUG_ARG("so = %lx", (long)so);
