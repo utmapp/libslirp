@@ -151,6 +151,7 @@ static void bootp_reply(struct bootp_t *bp)
     memset(rbp, 0, sizeof(struct bootp_t));
 
     if (dhcp_msg_type == DHCPDISCOVER) {
+    new_addr:
         bc = get_new_addr(&daddr.sin_addr);
         if (!bc) {
             dprintf("no address left\n");
@@ -160,8 +161,9 @@ static void bootp_reply(struct bootp_t *bp)
     } else {
         bc = find_addr(&daddr.sin_addr, bp->bp_hwaddr);
         if (!bc) {
-            dprintf("no address assigned\n");
-            return;
+            /* if never assigned, behaves as if it was already
+               assigned (windows fix because it remembers its address) */
+            goto new_addr;
         }
     }
     dprintf("offered addr=%08x\n", ntohl(daddr.sin_addr.s_addr));
