@@ -336,7 +336,11 @@ int udp_attach(so) struct socket *so;
             int lasterrno = errno;
             closesocket(so->s);
             so->s = -1;
+#ifdef _WIN32
+            WSASetLastError(lasterrno);
+#else
             errno = lasterrno;
+#endif
         } else {
             /* success, insert in queue */
             so->so_expire = curtime + SO_EXPIRE;

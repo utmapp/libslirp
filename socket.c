@@ -142,7 +142,7 @@ int soread(so) struct socket *so;
     nn = readv(so->s, (struct iovec *)iov, n);
     DEBUG_MISC((dfd, " ... read nn = %d bytes\n", nn));
 #else
-    nn = read(so->s, iov[0].iov_base, iov[0].iov_len);
+    nn = recv(so->s, iov[0].iov_base, iov[0].iov_len, 0);
 #endif
     if (nn <= 0) {
         if (nn < 0 && (errno == EINTR || errno == EAGAIN))
@@ -168,7 +168,7 @@ int soread(so) struct socket *so;
      * A return of -1 wont (shouldn't) happen, since it didn't happen above
      */
     if (n == 2 && nn == iov[0].iov_len)
-        nn += read(so->s, iov[1].iov_base, iov[1].iov_len);
+        nn += recv(so->s, iov[1].iov_base, iov[1].iov_len, 0);
 
     DEBUG_MISC((dfd, " ... read nn = %d bytes\n", nn));
 #endif
@@ -329,7 +329,7 @@ int sowrite(so) struct socket *so;
 
     DEBUG_MISC((dfd, "  ... wrote nn = %d bytes\n", nn));
 #else
-    nn = write(so->s, iov[0].iov_base, iov[0].iov_len);
+    nn = send(so->s, iov[0].iov_base, iov[0].iov_len, 0);
 #endif
     /* This should never happen, but people tell me it does *shrug* */
     if (nn < 0 && (errno == EAGAIN || errno == EINTR))
@@ -346,7 +346,7 @@ int sowrite(so) struct socket *so;
 
 #ifndef HAVE_READV
     if (n == 2 && nn == iov[0].iov_len)
-        nn += write(so->s, iov[1].iov_base, iov[1].iov_len);
+        nn += send(so->s, iov[1].iov_base, iov[1].iov_len, 0);
     DEBUG_MISC((dfd, "  ... wrote nn = %d bytes\n", nn));
 #endif
 
@@ -569,7 +569,11 @@ int flags;
         close(s);
         sofree(so);
         /* Restore the real errno */
+#ifdef _WIN32
+        WSASetLastError(tmperrno);
+#else
         errno = tmperrno;
+#endif
         return NULL;
     }
     setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
@@ -631,7 +635,9 @@ void sofcantrcvmore(so) struct socket *so;
 {
     if ((so->so_state & SS_NOFDREF) == 0) {
         shutdown(so->s, 0);
-        FD_CLR(so->s, global_writefds);
+        if (global_writefds) {
+            FD_CLR(so->s, global_writefds);
+        }
     }
     so->so_state &= ~(SS_ISFCONNECTING);
     if (so->so_state & SS_FCANTSENDMORE)
@@ -645,8 +651,12 @@ void sofcantsendmore(so) struct socket *so;
 {
     if ((so->so_state & SS_NOFDREF) == 0) {
         shutdown(so->s, 1); /* send FIN to fhost */
-        FD_CLR(so->s, global_readfds);
-        FD_CLR(so->s, global_xfds);
+        if (global_readfds) {
+            FD_CLR(so->s, global_readfds);
+        }
+        if (global_xfds) {
+            FD_CLR(so->s, global_xfds);
+        }
     }
     so->so_state &= ~(SS_ISFCONNECTING);
     if (so->so_state & SS_FCANTRCVMORE)
