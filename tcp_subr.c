@@ -1239,16 +1239,16 @@ do_prompt:
  */
 int tcp_ctl(so) struct socket *so;
 {
+    struct sbuf *sb = &so->so_snd;
+    int command;
+    struct ex_list *ex_ptr;
+    int do_pty;
+    struct socket *tmpso;
+
+    DEBUG_CALL("tcp_ctl");
+    DEBUG_ARG("so = %lx", (long)so);
+
 #if 0
-	struct sbuf *sb = &so->so_snd;
-	int command;
- 	struct ex_list *ex_ptr;
-	int do_pty;
-	struct socket *tmpso;
-	
-	DEBUG_CALL("tcp_ctl");
-	DEBUG_ARG("so = %lx", (long )so);
-	
 	/*
 	 * Check if they're authorised
 	 */
@@ -1257,39 +1257,40 @@ int tcp_ctl(so) struct socket *so;
 		sb->sb_wptr += sb->sb_cc;
 		return 0;
 	}
-	
-	command = (ntohl(so->so_faddr.s_addr) & 0xff);
-	
-	switch(command) {
-	default: /* Check for exec's */
-		
-		/*
-		 * Check if it's pty_exec
-		 */
-		for (ex_ptr = exec_list; ex_ptr; ex_ptr = ex_ptr->ex_next) {
-			if (ex_ptr->ex_fport == so->so_fport &&
-			    command == ex_ptr->ex_addr) {
-				do_pty = ex_ptr->ex_pty;
-				goto do_exec;
-			}
-		}
-		
-		/*
-		 * Nothing bound..
-		 */
-		/* tcp_fconnect(so); */
-		
-		/* FALLTHROUGH */
-	case CTL_ALIAS:
-	  sb->sb_cc = sprintf(sb->sb_wptr,
-			      "Error: No application configured.\r\n");
-	  sb->sb_wptr += sb->sb_cc;
-	  return(0);
+#endif
+    command = (ntohl(so->so_faddr.s_addr) & 0xff);
 
-	do_exec:
-		DEBUG_MISC((dfd, " executing %s \n",ex_ptr->ex_exec));
-		return(fork_exec(so, ex_ptr->ex_exec, do_pty));
-		
+    switch (command) {
+    default: /* Check for exec's */
+
+        /*
+         * Check if it's pty_exec
+         */
+        for (ex_ptr = exec_list; ex_ptr; ex_ptr = ex_ptr->ex_next) {
+            if (ex_ptr->ex_fport == so->so_fport &&
+                command == ex_ptr->ex_addr) {
+                do_pty = ex_ptr->ex_pty;
+                goto do_exec;
+            }
+        }
+
+        /*
+         * Nothing bound..
+         */
+        /* tcp_fconnect(so); */
+
+        /* FALLTHROUGH */
+    case CTL_ALIAS:
+        sb->sb_cc =
+            sprintf(sb->sb_wptr, "Error: No application configured.\r\n");
+        sb->sb_wptr += sb->sb_cc;
+        return (0);
+
+    do_exec:
+        DEBUG_MISC((dfd, " executing %s \n", ex_ptr->ex_exec));
+        return (fork_exec(so, ex_ptr->ex_exec, do_pty));
+
+#if 0
 	case CTL_CMD:
 	   for (tmpso = tcb.so_next; tmpso != &tcb; tmpso = tmpso->so_next) {
 	     if (tmpso->so_emu == EMU_CTL && 
@@ -1308,8 +1309,6 @@ int tcp_ctl(so) struct socket *so;
 	   sb->sb_wptr += sb->sb_cc;
 	   do_echo=-1;
 	   return(2);
-	}
-#else
-    return 0;
 #endif
+    }
 }

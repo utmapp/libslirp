@@ -196,69 +196,75 @@ char *strerror(error) int error;
 #endif
 
 
-#if 0
-int
-openpty(amaster, aslave)
-	int *amaster, *aslave;
-{
-	register int master, slave;
+#ifdef _WIN32
 
-#ifdef HAVE_GRANTPT
-	char *ptr;
-	
-	if ((master = open("/dev/ptmx", O_RDWR)) < 0 ||
-	    grantpt(master) < 0 ||
-	    unlockpt(master) < 0 ||
-	    (ptr = ptsname(master)) == NULL)  {
-		close(master);
-		return -1;
-	}
-	
-	if ((slave = open(ptr, O_RDWR)) < 0 ||
-	    ioctl(slave, I_PUSH, "ptem") < 0 ||
-	    ioctl(slave, I_PUSH, "ldterm") < 0 ||
-	    ioctl(slave, I_PUSH, "ttcompat") < 0) {
-		close(master);
-		close(slave);
-		return -1;
-	}
-	
-	*amaster = master;
-	*aslave = slave;
-	return 0;
+int fork_exec(so, ex, do_pty) struct socket *so;
+char *ex;
+int do_pty;
+{
+    /* not implemented */
+    return 0;
+}
 
 #else
-	
-	static char line[] = "/dev/ptyXX";
-	register const char *cp1, *cp2;
-	
-	for (cp1 = "pqrsPQRS"; *cp1; cp1++) {
-		line[8] = *cp1;
-		for (cp2 = "0123456789abcdefghijklmnopqrstuv"; *cp2; cp2++) {
-			line[9] = *cp2;
-			if ((master = open(line, O_RDWR, 0)) == -1) {
-				if (errno == ENOENT)
-				   return (-1);    /* out of ptys */
-			} else {
-				line[5] = 't';
-				/* These will fail */
-				(void) chown(line, getuid(), 0);
-				(void) chmod(line, S_IRUSR|S_IWUSR|S_IWGRP);
+
+int openpty(amaster, aslave) int *amaster, *aslave;
+{
+    register int master, slave;
+
+#ifdef HAVE_GRANTPT
+    char *ptr;
+
+    if ((master = open("/dev/ptmx", O_RDWR)) < 0 || grantpt(master) < 0 ||
+        unlockpt(master) < 0 || (ptr = ptsname(master)) == NULL) {
+        close(master);
+        return -1;
+    }
+
+    if ((slave = open(ptr, O_RDWR)) < 0 || ioctl(slave, I_PUSH, "ptem") < 0 ||
+        ioctl(slave, I_PUSH, "ldterm") < 0 ||
+        ioctl(slave, I_PUSH, "ttcompat") < 0) {
+        close(master);
+        close(slave);
+        return -1;
+    }
+
+    *amaster = master;
+    *aslave = slave;
+    return 0;
+
+#else
+
+    static char line[] = "/dev/ptyXX";
+    register const char *cp1, *cp2;
+
+    for (cp1 = "pqrsPQRS"; *cp1; cp1++) {
+        line[8] = *cp1;
+        for (cp2 = "0123456789abcdefghijklmnopqrstuv"; *cp2; cp2++) {
+            line[9] = *cp2;
+            if ((master = open(line, O_RDWR, 0)) == -1) {
+                if (errno == ENOENT)
+                    return (-1); /* out of ptys */
+            } else {
+                line[5] = 't';
+                /* These will fail */
+                (void)chown(line, getuid(), 0);
+                (void)chmod(line, S_IRUSR | S_IWUSR | S_IWGRP);
 #ifdef HAVE_REVOKE
-				(void) revoke(line);
+                (void)revoke(line);
 #endif
-				if ((slave = open(line, O_RDWR, 0)) != -1) {
-					*amaster = master;
-					*aslave = slave;
-					return 0;
-				}
-				(void) close(master);
-				line[5] = 'p';
-			}
-		}
-	}
-	errno = ENOENT; /* out of ptys */
-	return (-1);
+                if ((slave = open(line, O_RDWR, 0)) != -1) {
+                    *amaster = master;
+                    *aslave = slave;
+                    return 0;
+                }
+                (void)close(master);
+                line[5] = 'p';
+            }
+        }
+    }
+    errno = ENOENT; /* out of ptys */
+    return (-1);
 #endif
 }
 
@@ -268,82 +274,83 @@ openpty(amaster, aslave)
  * process, which connects to this socket, after which we
  * exec the wanted program.  If something (strange) happens,
  * the accept() call could block us forever.
- * 
+ *
  * do_pty = 0   Fork/exec inetd style
  * do_pty = 1   Fork/exec using slirp.telnetd
  * do_ptr = 2   Fork/exec using pty
  */
-int
-fork_exec(so, ex, do_pty)
-	struct socket *so;
-	char *ex;
-	int do_pty;
+int fork_exec(so, ex, do_pty) struct socket *so;
+char *ex;
+int do_pty;
 {
-	int s;
-	struct sockaddr_in addr;
-	int addrlen = sizeof(addr);
-	int opt;
-        int master;
-	char *argv[256];
+    int s;
+    struct sockaddr_in addr;
+    int addrlen = sizeof(addr);
+    int opt;
+    int master;
+    char *argv[256];
+#if 0
 	char buff[256];
-	/* don't want to clobber the original */
-	char *bptr;
-	char *curarg;
-	int c, i;
-	
-	DEBUG_CALL("fork_exec");
-	DEBUG_ARG("so = %lx", (long)so);
-	DEBUG_ARG("ex = %lx", (long)ex);
-	DEBUG_ARG("do_pty = %lx", (long)do_pty);
-	
-	if (do_pty == 2) {
-		if (openpty(&master, &s) == -1) {
-			lprint("Error: openpty failed: %s\n", strerror(errno));
-			return 0;
-		}
-	} else {
-		addr.sin_family = AF_INET;
-		addr.sin_port = 0;
-		addr.sin_addr.s_addr = INADDR_ANY;
-		
-		if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||
-		    bind(s, (struct sockaddr *)&addr, addrlen) < 0 ||
-		    listen(s, 1) < 0) {
-			lprint("Error: inet socket: %s\n", strerror(errno));
-			closesocket(s);
-			
-			return 0;
-		}
-	}
-	
-	switch(fork()) {
-	 case -1:
-		lprint("Error: fork failed: %s\n", strerror(errno));
-		close(s);
-		if (do_pty == 2)
-		   close(master);
-		return 0;
-		
-	 case 0:
-		/* Set the DISPLAY */
-		if (do_pty == 2) {
-			(void) close(master);
-#ifdef TIOCSCTTY /* XXXXX */
-			(void) setsid();
-			ioctl(s, TIOCSCTTY, (char *)NULL);
 #endif
-		} else {
-			getsockname(s, (struct sockaddr *)&addr, &addrlen);
-			close(s);
-			/*
-			 * Connect to the socket
-			 * XXX If any of these fail, we're in trouble!
-	 		 */
-			s = socket(AF_INET, SOCK_STREAM, 0);
-			addr.sin_addr = loopback_addr;
-			connect(s, (struct sockaddr *)&addr, addrlen);
-		}
-		
+    /* don't want to clobber the original */
+    char *bptr;
+    char *curarg;
+    int c, i;
+
+    DEBUG_CALL("fork_exec");
+    DEBUG_ARG("so = %lx", (long)so);
+    DEBUG_ARG("ex = %lx", (long)ex);
+    DEBUG_ARG("do_pty = %lx", (long)do_pty);
+
+    if (do_pty == 2) {
+        if (openpty(&master, &s) == -1) {
+            lprint("Error: openpty failed: %s\n", strerror(errno));
+            return 0;
+        }
+    } else {
+        addr.sin_family = AF_INET;
+        addr.sin_port = 0;
+        addr.sin_addr.s_addr = INADDR_ANY;
+
+        if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||
+            bind(s, (struct sockaddr *)&addr, addrlen) < 0 ||
+            listen(s, 1) < 0) {
+            lprint("Error: inet socket: %s\n", strerror(errno));
+            closesocket(s);
+
+            return 0;
+        }
+    }
+
+    switch (fork()) {
+    case -1:
+        lprint("Error: fork failed: %s\n", strerror(errno));
+        close(s);
+        if (do_pty == 2)
+            close(master);
+        return 0;
+
+    case 0:
+        /* Set the DISPLAY */
+        if (do_pty == 2) {
+            (void)close(master);
+#ifdef TIOCSCTTY /* XXXXX */
+            (void)setsid();
+            ioctl(s, TIOCSCTTY, (char *)NULL);
+#endif
+        } else {
+            getsockname(s, (struct sockaddr *)&addr, &addrlen);
+            close(s);
+            /*
+             * Connect to the socket
+             * XXX If any of these fail, we're in trouble!
+             */
+            s = socket(AF_INET, SOCK_STREAM, 0);
+            addr.sin_addr = loopback_addr;
+            connect(s, (struct sockaddr *)&addr, addrlen);
+        }
+
+#if 0
 		if (x_port >= 0) {
 #ifdef HAVE_SETENV
 			sprintf(buff, "%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
@@ -353,74 +360,78 @@ fork_exec(so, ex, do_pty)
 			putenv(buff);
 #endif
 		}
-	
-		dup2(s, 0);
-		dup2(s, 1);
-		dup2(s, 2);
-		for (s = 3; s <= 255; s++)
-		   close(s);
-		
-		i = 0;
-		bptr = strdup(ex); /* No need to free() this */
-		if (do_pty == 1) {
-			/* Setup "slirp.telnetd -x" */
-			argv[i++] = "slirp.telnetd";
-			argv[i++] = "-x";
-			argv[i++] = bptr;
-		} else
-		   do {
-			/* Change the string into argv[] */
-			curarg = bptr;
-			while (*bptr != ' ' && *bptr != (char)0)
-			   bptr++;
-			c = *bptr;
-			*bptr++ = (char)0;
-			argv[i++] = strdup(curarg);
-		   } while (c);
-		
-		argv[i] = 0;
-		execvp(argv[0], argv);
-		
-		/* Ooops, failed, let's tell the user why */
-		  {
-			  char buff[256];
-			  
-			  sprintf(buff, "Error: execvp of %s failed: %s\n", 
-				  argv[0], strerror(errno));
-			  write(2, buff, strlen(buff)+1);
-		  }
-		close(0); close(1); close(2); /* XXX */
-		exit(1);
-		
-	 default:
-		if (do_pty == 2) {
-			close(s);
-			so->s = master;
-		} else {
-			/*
-			 * XXX this could block us...
-			 * XXX Should set a timer here, and if accept() doesn't
-		 	 * return after X seconds, declare it a failure
-		 	 * The only reason this will block forever is if socket()
-		 	 * of connect() fail in the child process
-		 	 */
-			so->s = accept(s, (struct sockaddr *)&addr, &addrlen);
-			closesocket(s);
-			opt = 1;
-			setsockopt(so->s,SOL_SOCKET,SO_REUSEADDR,(char *)&opt,sizeof(int));
-			opt = 1;
-			setsockopt(so->s,SOL_SOCKET,SO_OOBINLINE,(char *)&opt,sizeof(int));
-		}
-		fd_nonblock(so->s);
-		
-		/* Append the telnet options now */
-		if (so->so_m != 0 && do_pty == 1)  {
-			sbappend(so, so->so_m);
-			so->so_m = 0;
-		}
-		
-		return 1;
-	}
+#endif
+        dup2(s, 0);
+        dup2(s, 1);
+        dup2(s, 2);
+        for (s = 3; s <= 255; s++)
+            close(s);
+
+        i = 0;
+        bptr = strdup(ex); /* No need to free() this */
+        if (do_pty == 1) {
+            /* Setup "slirp.telnetd -x" */
+            argv[i++] = "slirp.telnetd";
+            argv[i++] = "-x";
+            argv[i++] = bptr;
+        } else
+            do {
+                /* Change the string into argv[] */
+                curarg = bptr;
+                while (*bptr != ' ' && *bptr != (char)0)
+                    bptr++;
+                c = *bptr;
+                *bptr++ = (char)0;
+                argv[i++] = strdup(curarg);
+            } while (c);
+
+        argv[i] = 0;
+        execvp(argv[0], argv);
+
+        /* Ooops, failed, let's tell the user why */
+        {
+            char buff[256];
+
+            sprintf(buff, "Error: execvp of %s failed: %s\n", argv[0],
+                    strerror(errno));
+            write(2, buff, strlen(buff) + 1);
+        }
+        close(0);
+        close(1);
+        close(2); /* XXX */
+        exit(1);
+
+    default:
+        if (do_pty == 2) {
+            close(s);
+            so->s = master;
+        } else {
+            /*
+             * XXX this could block us...
+             * XXX Should set a timer here, and if accept() doesn't
+             * return after X seconds, declare it a failure
+             * The only reason this will block forever is if socket()
+             * of connect() fail in the child process
+             */
+            so->s = accept(s, (struct sockaddr *)&addr, &addrlen);
+            closesocket(s);
+            opt = 1;
+            setsockopt(so->s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt,
+                       sizeof(int));
+            opt = 1;
+            setsockopt(so->s, SOL_SOCKET, SO_OOBINLINE, (char *)&opt,
+                       sizeof(int));
+        }
+        fd_nonblock(so->s);
+
+        /* Append the telnet options now */
+        if (so->so_m != 0 && do_pty == 1) {
+            sbappend(so, so->so_m);
+            so->so_m = 0;
+        }
+
+        return 1;
+    }
 }
 #endif
 
