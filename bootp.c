@@ -227,7 +227,7 @@ static void bootp_reply(struct bootp_t *bp)
 RFC1533_END
 ;
 
-m->m_len = sizeof(struct bootp_t);
+m->m_len = sizeof(struct bootp_t) - sizeof(struct ip) - sizeof(struct udphdr);
 udp_output2(NULL, m, &saddr, &daddr, IPTOS_LOWDELAY);
 }
 
