@@ -410,10 +410,16 @@ struct mbuf *m;
 #endif
 
     struct cu_header {
-        char dest[8];
-        short family;
-        u_short port;
-        u_long addr;
+        uint16_t d_family; // destination family
+        uint16_t d_port; // destination port
+        uint32_t d_addr; // destination address
+        uint16_t s_family; // source family
+        uint16_t s_port; // source port
+        uint32_t s_addr; // source address
+        uint32_t seqn; // sequence number
+        uint16_t message; // message
+        uint16_t data_type; // data type
+        uint16_t pkt_len; // packet length
     } * cu_head;
 
     switch (so->so_emu) {
@@ -599,8 +605,8 @@ struct mbuf *m;
             if (getsockname(so->s, (struct sockaddr *)&addr, &addrlen) < 0)
                 return;
             cu_head = mtod(m, struct cu_header *);
-            cu_head->port = addr.sin_port;
-            cu_head->addr = (u_long)our_addr.s_addr;
+            cu_head->s_port = addr.sin_port;
+            cu_head->s_addr = our_addr.s_addr;
         }
 
         return;
