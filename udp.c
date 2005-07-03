@@ -415,7 +415,7 @@ struct mbuf *m;
         uint32_t d_addr; // destination address
         uint16_t s_family; // source family
         uint16_t s_port; // source port
-        uint32_t s_addr; // source address
+        uint32_t so_addr; // source address
         uint32_t seqn; // sequence number
         uint16_t message; // message
         uint16_t data_type; // data type
@@ -606,7 +606,7 @@ struct mbuf *m;
                 return;
             cu_head = mtod(m, struct cu_header *);
             cu_head->s_port = addr.sin_port;
-            cu_head->s_addr = our_addr.s_addr;
+            cu_head->so_addr = our_addr.s_addr;
         }
 
         return;
