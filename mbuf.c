@@ -137,19 +137,20 @@ void m_cat(m, n) register struct mbuf *m, *n;
 void m_inc(m, size) struct mbuf *m;
 int size;
 {
+    int datasize;
+
     /* some compiles throw up on gotos.  This one we can fake. */
     if (m->m_size > size)
         return;
 
     if (m->m_flags & M_EXT) {
-        /* datasize = m->m_data - m->m_ext; */
+        datasize = m->m_data - m->m_ext;
         m->m_ext = (char *)realloc(m->m_ext, size);
         /*		if (m->m_ext == NULL)
          *			return (struct mbuf *)NULL;
          */
-        /* m->m_data = m->m_ext + datasize; */
+        m->m_data = m->m_ext + datasize;
     } else {
-        int datasize;
         char *dat;
         datasize = m->m_data - m->m_dat;
         dat = (char *)malloc(size);
