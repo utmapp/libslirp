@@ -113,8 +113,7 @@ int hlen;
     case ICMP_ECHO:
         icp->icmp_type = ICMP_ECHOREPLY;
         ip->ip_len += hlen; /* since ip_input subtracts this */
-        if (ip->ip_dst.s_addr == our_addr.s_addr ||
-            (ip->ip_dst.s_addr == (special_addr.s_addr | htonl(CTL_ALIAS)))) {
+        if (ip->ip_dst.s_addr == alias_addr.s_addr) {
             icmp_reflect(m);
         } else {
             struct socket *so;
@@ -163,7 +162,7 @@ int hlen;
                            strerror(errno));
                 udp_detach(so);
             }
-        } /* if ip->ip_dst.s_addr == our_addr.s_addr */
+        } /* if ip->ip_dst.s_addr == alias_addr.s_addr */
         break;
     case ICMP_UNREACH:
         /* XXX? report error? close socket? */
@@ -321,7 +320,7 @@ char *message;
     ip->ip_ttl = MAXTTL;
     ip->ip_p = IPPROTO_ICMP;
     ip->ip_dst = ip->ip_src; /* ip adresses */
-    ip->ip_src = our_addr;
+    ip->ip_src = alias_addr;
 
     (void)ip_output((struct socket *)NULL, m);
 

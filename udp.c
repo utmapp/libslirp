@@ -645,7 +645,7 @@ int flags;
     so->so_fport = addr.sin_port;
     if (addr.sin_addr.s_addr == 0 ||
         addr.sin_addr.s_addr == loopback_addr.s_addr)
-        so->so_faddr = our_addr;
+        so->so_faddr = alias_addr;
     else
         so->so_faddr = addr.sin_addr;
 
