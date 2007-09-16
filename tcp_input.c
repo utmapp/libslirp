@@ -1537,7 +1537,7 @@ struct tcpiphdr *ti;
              *sizeof(*ts_val)); NTOHL(*ts_val); memcpy((char *) ts_ecr, (char
              **)cp + 6, sizeof(*ts_ecr)); NTOHL(*ts_ecr);
              *
-             */			/* 
+             */			/*
  *			 * A timestamp received in a SYN makes
  *			 * it ok to send timestamp requests and replies.
  *			 */

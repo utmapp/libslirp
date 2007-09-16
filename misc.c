@@ -31,7 +31,7 @@ show_x(buff, inso)
 		if (x_display)
 		   lprint("X Redir: Redirecting to display %d\r\n", x_display);
 	}
-	
+
 	return CFG_OK;
 }
 
@@ -47,7 +47,7 @@ redir_x(inaddr, start_port, display, screen)
 	int screen;
 {
 	int i;
-	
+
 	if (x_port >= 0) {
 		lprint("X Redir: X already being redirected.\r\n");
 		show_x(0, 0);
@@ -461,7 +461,7 @@ snooze_hup(num)
 #endif
 	struct sockaddr_in sock_in;
 	char buff[256];
-	
+
 	ret = -1;
 	if (slirp_socket_passwd) {
 		s = socket(AF_INET, SOCK_STREAM, 0);
@@ -491,29 +491,29 @@ snooze_hup(num)
 #endif
 	slirp_exit(0);
 }
-	
-	
+
+
 void
 snooze()
 {
 	sigset_t s;
 	int i;
-	
+
 	/* Don't need our data anymore */
 	/* XXX This makes SunOS barf */
 /*	brk(0); */
-	
+
 	/* Close all fd's */
 	for (i = 255; i >= 0; i--)
 	   close(i);
-	
+
 	signal(SIGQUIT, slirp_exit);
 	signal(SIGHUP, snooze_hup);
 	sigemptyset(&s);
-	
+
 	/* Wait for any signal */
 	sigsuspend(&s);
-	
+
 	/* Just in case ... */
 	exit(255);
 }
@@ -526,16 +526,16 @@ relay(s)
 	int n;
 	fd_set readfds;
 	struct ttys *ttyp;
-	
+
 	/* Don't need our data anymore */
 	/* XXX This makes SunOS barf */
 /*	brk(0); */
-	
+
 	signal(SIGQUIT, slirp_exit);
 	signal(SIGHUP, slirp_exit);
         signal(SIGINT, slirp_exit);
 	signal(SIGTERM, slirp_exit);
-	
+
 	/* Fudge to get term_raw and term_restore to work */
 	if (NULL == (ttyp = tty_attach (0, slirp_tty))) {
          lprint ("Error: tty_attach failed in misc.c:relay()\r\n");
@@ -544,18 +544,18 @@ relay(s)
 	ttyp->fd = 0;
 	ttyp->flags |= TTY_CTTY;
 	term_raw(ttyp);
-	
+
 	while (1) {
 		FD_ZERO(&readfds);
-		
+	
 		FD_SET(0, &readfds);
 		FD_SET(s, &readfds);
-		
+	
 		n = select(s+1, &readfds, (fd_set *)0, (fd_set *)0, (struct timeval *)0);
-		
+	
 		if (n <= 0)
 		   slirp_exit(0);
-		
+	
 		if (FD_ISSET(0, &readfds)) {
 			n = read(0, buf, 8192);
 			if (n <= 0)
@@ -564,7 +564,7 @@ relay(s)
 			if (n <= 0)
 			   slirp_exit(0);
 		}
-		
+	
 		if (FD_ISSET(s, &readfds)) {
 			n = read(s, buf, 8192);
 			if (n <= 0)
@@ -574,7 +574,7 @@ relay(s)
 			   slirp_exit(0);
 		}
 	}
-	
+
 	/* Just in case.... */
 	exit(1);
 }
@@ -608,15 +608,15 @@ lprint(const char *format, ...)
 			int deltaw = lprint_sb->sb_wptr - lprint_sb->sb_data;
 			int deltar = lprint_sb->sb_rptr - lprint_sb->sb_data;
 			int deltap = lprint_ptr -         lprint_sb->sb_data;
-			                        
+			                       
 			lprint_sb->sb_data = (char *)realloc(lprint_sb->sb_data,
 							     lprint_sb->sb_datalen + TCP_SNDSPACE);
-			
+		
 			/* Adjust all values */
 			lprint_sb->sb_wptr = lprint_sb->sb_data + deltaw;
 			lprint_sb->sb_rptr = lprint_sb->sb_data + deltar;
 			lprint_ptr =         lprint_sb->sb_data + deltap;
-			
+		
 			lprint_sb->sb_datalen += TCP_SNDSPACE;
 		}
 	}
@@ -835,10 +835,10 @@ rsh_exec(so,ns, user, host, args)
 	int fd0[2];
 	int s;
 	char buff[256];
-	
+
 	DEBUG_CALL("rsh_exec");
 	DEBUG_ARG("so = %lx", (long)so);
-	
+
 	if (pipe(fd)<0) {
           lprint("Error: pipe failed: %s\n", strerror(errno));
           return 0;
@@ -859,7 +859,7 @@ rsh_exec(so,ns, user, host, args)
           return 0;
         }
 #endif
-	
+
 	switch(fork()) {
 	 case -1:
            lprint("Error: fork failed: %s\n", strerror(errno));
@@ -868,11 +868,11 @@ rsh_exec(so,ns, user, host, args)
            close(fd0[0]);
            close(fd0[1]);
            return 0;
-           
+          
 	 case 0:
            close(fd[0]);
            close(fd0[0]);
-           
+          
 		/* Set the DISPLAY */
            if (x_port >= 0) {
 #ifdef HAVE_SETENV
@@ -883,29 +883,29 @@ rsh_exec(so,ns, user, host, args)
              putenv(buff);
 #endif
            }
-           
+          
            dup2(fd0[1], 0);
            dup2(fd0[1], 1);
            dup2(fd[1], 2);
            for (s = 3; s <= 255; s++)
              close(s);
-           
+          
            execlp("rsh","rsh","-l", user, host, args, NULL);
-           
+          
            /* Ooops, failed, let's tell the user why */
-           
-           sprintf(buff, "Error: execlp of %s failed: %s\n", 
+          
+           sprintf(buff, "Error: execlp of %s failed: %s\n",
                    "rsh", strerror(errno));
            write(2, buff, strlen(buff)+1);
            close(0); close(1); close(2); /* XXX */
            exit(1);
-           
+          
         default:
           close(fd[1]);
           close(fd0[1]);
           ns->s=fd[0];
           so->s=fd0[0];
-          
+         
           return 1;
 	}
 }

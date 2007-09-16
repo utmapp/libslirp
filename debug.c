@@ -70,7 +70,7 @@ int n;
 #if 0
 /*
  * Statistic routines
- * 
+ *
  * These will print statistics to the screen, the debug file (dfd), or
  * a buffer, depending on "type", so that the stats can be sent over
  * the link as well.
@@ -82,9 +82,9 @@ ttystats(ttyp)
 {
 	struct slirp_ifstats *is = &ttyp->ifstats;
 	char buff[512];
-	
+
 	lprint(" \r\n");
-	
+
 	if (if_comp & IF_COMPRESS)
 	   strcpy(buff, "on");
 	else if (if_comp & IF_NOCOMPRESS)
@@ -119,7 +119,7 @@ void
 allttystats()
 {
 	struct ttys *ttyp;
-	
+
 	for (ttyp = ttys; ttyp; ttyp = ttyp->next)
 	   ttystats(ttyp);
 }
@@ -155,9 +155,9 @@ void
 vjstats()
 {
 	lprint(" \r\n");
-	
+
 	lprint("VJ compression stats:\r\n");
-	
+
 	lprint("  %6d outbound packets (%d compressed)\r\n",
 	       comp_s.sls_packets, comp_s.sls_compressed);
 	lprint("  %6d searches for connection stats (%d misses)\r\n",
@@ -336,7 +336,7 @@ slirp_exit(exit_status)
 	int exit_status;
 {
 	struct ttys *ttyp;
-	
+
 	DEBUG_CALL("slirp_exit");
 	DEBUG_ARG("exit_status = %d", exit_status);
 
@@ -345,7 +345,7 @@ slirp_exit(exit_status)
 		if (!dfd)
 		   debug_init("slirp_stats", 0xf);
 		lprint_arg = (char **)&dfd;
-		
+	
 		ipstats();
 		tcpstats();
 		udpstats();
@@ -355,17 +355,17 @@ slirp_exit(exit_status)
 		allttystats();
 		vjstats();
 	}
-	
+
 	for (ttyp = ttys; ttyp; ttyp = ttyp->next)
 	   tty_detached(ttyp, 1);
-	
+
 	if (slirp_forked) {
 		/* Menendez time */
 		if (kill(getppid(), SIGQUIT) < 0)
 			lprint("Couldn't kill parent process %ld!\n",
 			    (long) getppid());
     	}
-	
+
 	/* Restore the terminal if we gotta */
 	if(slirp_tty_restore)
 	  tcsetattr(0,TCSANOW, &slirp_tty_settings);  /* NOW DAMMIT! */

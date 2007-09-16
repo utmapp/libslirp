@@ -72,12 +72,12 @@ writen(fd, bptr, n)
 {
 	int ret;
 	int total;
-	
+
 	/* This should succeed most of the time */
 	ret = send(fd, bptr, n,0);
 	if (ret == n || ret <= 0)
 	   return ret;
-	
+
 	/* Didn't write everything, go into the loop */
 	total = ret;
 	while (n > total) {
@@ -92,7 +92,7 @@ writen(fd, bptr, n)
 /*
  * if_input - read() the tty, do "top level" processing (ie: check for any escapes),
  * and pass onto (*ttyp->if_input)
- * 
+ *
  * XXXXX Any zeros arriving by themselves are NOT placed into the arriving packet.
  */
 #define INBUFF_SIZE 2048 /* XXX */
@@ -102,14 +102,14 @@ if_input(ttyp)
 {
 	u_char if_inbuff[INBUFF_SIZE];
 	int if_n;
-	
+
 	DEBUG_CALL("if_input");
 	DEBUG_ARG("ttyp = %lx", (long)ttyp);
-	
+
 	if_n = recv(ttyp->fd, (char *)if_inbuff, INBUFF_SIZE,0);
-	
+
 	DEBUG_MISC((dfd, " read %d bytes\n", if_n));
-	
+
 	if (if_n <= 0) {
 		if (if_n == 0 || (errno != EINTR && errno != EAGAIN)) {
 			if (ttyp->up)
@@ -133,7 +133,7 @@ if_input(ttyp)
 		}
 	}
 	ttyp->ones = ttyp->zeros = 0;
-	
+
 	(*ttyp->if_input)(ttyp, if_inbuff, if_n);
 }
 #endif
