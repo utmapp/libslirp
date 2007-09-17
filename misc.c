@@ -547,15 +547,15 @@ relay(s)
 
 	while (1) {
 		FD_ZERO(&readfds);
-	
+
 		FD_SET(0, &readfds);
 		FD_SET(s, &readfds);
-	
+
 		n = select(s+1, &readfds, (fd_set *)0, (fd_set *)0, (struct timeval *)0);
-	
+
 		if (n <= 0)
 		   slirp_exit(0);
-	
+
 		if (FD_ISSET(0, &readfds)) {
 			n = read(0, buf, 8192);
 			if (n <= 0)
@@ -564,7 +564,7 @@ relay(s)
 			if (n <= 0)
 			   slirp_exit(0);
 		}
-	
+
 		if (FD_ISSET(s, &readfds)) {
 			n = read(s, buf, 8192);
 			if (n <= 0)
@@ -608,15 +608,15 @@ lprint(const char *format, ...)
 			int deltaw = lprint_sb->sb_wptr - lprint_sb->sb_data;
 			int deltar = lprint_sb->sb_rptr - lprint_sb->sb_data;
 			int deltap = lprint_ptr -         lprint_sb->sb_data;
-			                       
+
 			lprint_sb->sb_data = (char *)realloc(lprint_sb->sb_data,
 							     lprint_sb->sb_datalen + TCP_SNDSPACE);
-		
+
 			/* Adjust all values */
 			lprint_sb->sb_wptr = lprint_sb->sb_data + deltaw;
 			lprint_sb->sb_rptr = lprint_sb->sb_data + deltar;
 			lprint_ptr =         lprint_sb->sb_data + deltap;
-		
+
 			lprint_sb->sb_datalen += TCP_SNDSPACE;
 		}
 	}
@@ -868,11 +868,11 @@ rsh_exec(so,ns, user, host, args)
            close(fd0[0]);
            close(fd0[1]);
            return 0;
-          
+
 	 case 0:
            close(fd[0]);
            close(fd0[0]);
-          
+
 		/* Set the DISPLAY */
            if (x_port >= 0) {
 #ifdef HAVE_SETENV
@@ -883,29 +883,29 @@ rsh_exec(so,ns, user, host, args)
              putenv(buff);
 #endif
            }
-          
+
            dup2(fd0[1], 0);
            dup2(fd0[1], 1);
            dup2(fd[1], 2);
            for (s = 3; s <= 255; s++)
              close(s);
-          
+
            execlp("rsh","rsh","-l", user, host, args, NULL);
-          
+
            /* Ooops, failed, let's tell the user why */
-          
+
            sprintf(buff, "Error: execlp of %s failed: %s\n",
                    "rsh", strerror(errno));
            write(2, buff, strlen(buff)+1);
            close(0); close(1); close(2); /* XXX */
            exit(1);
-          
+
         default:
           close(fd[1]);
           close(fd0[1]);
           ns->s=fd[0];
           so->s=fd0[0];
-         
+
           return 1;
 	}
 }

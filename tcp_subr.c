@@ -689,7 +689,7 @@ struct mbuf *m;
 			char term[100];
 			struct sbuf *so_snd = &so->so_snd;
 			struct sbuf *so_rcv = &so->so_rcv;
-		
+
 			/* First check if they have a priveladged port, or too much data has arrived */
 			if (ntohs(so->so_lport) > 1023 || ntohs(so->so_lport) < 512 ||
 			    (m->m_len + so_rcv->sb_wptr) > (so_rcv->sb_data + so_rcv->sb_datalen)) {
@@ -700,13 +700,13 @@ struct mbuf *m;
 				m_free(m);
 				return 0;
 			}
-		
+
 			/* Append the current data */
 			memcpy(so_rcv->sb_wptr, m->m_data, m->m_len);
 			so_rcv->sb_wptr += m->m_len;
 			so_rcv->sb_rptr += m->m_len;
 			m_free(m);
-		
+
 			/*
 			 * Check if we have all the initial options,
 			 * and build argument list to rlogin while we're here
@@ -738,10 +738,10 @@ struct mbuf *m;
 					}
 				}
 			}
-		
+
 			if (n != 4)
 			   return 0;
-		
+
 			/* We have it, set our term variable and fork_exec() */
 #ifdef HAVE_SETENV
 			setenv("TERM", term, 1);
@@ -751,15 +751,15 @@ struct mbuf *m;
 			fork_exec(so, args, 2);
 			term[0] = 0;
 			so->so_emu = 0;
-		
+
 			/* And finally, send the client a 0 character */
 			so_snd->sb_wptr[0] = 0;
 			so_snd->sb_wptr++;
 			so_snd->sb_cc++;
-		
+
 			return 0;
 		}
-	
+
 	 case EMU_RSH:
 		/*
 		 * rsh emulation
@@ -773,7 +773,7 @@ struct mbuf *m;
 			char *args;
 			struct sbuf *so_snd = &so->so_snd;
 			struct sbuf *so_rcv = &so->so_rcv;
-		
+
 			/* First check if they have a priveladged port, or too much data has arrived */
 			if (ntohs(so->so_lport) > 1023 || ntohs(so->so_lport) < 512 ||
 			    (m->m_len + so_rcv->sb_wptr) > (so_rcv->sb_data + so_rcv->sb_datalen)) {
@@ -784,13 +784,13 @@ struct mbuf *m;
 				m_free(m);
 				return 0;
 			}
-		
+
 			/* Append the current data */
 			memcpy(so_rcv->sb_wptr, m->m_data, m->m_len);
 			so_rcv->sb_wptr += m->m_len;
 			so_rcv->sb_rptr += m->m_len;
 			m_free(m);
-		
+
 			/*
 			 * Check if we have all the initial options,
 			 * and build argument list to rlogin while we're here
@@ -832,9 +832,9 @@ struct mbuf *m;
 
 				ns->so_iptos = tcp_tos(ns);
 				tp = sototcpcb(ns);
-               
+
 				tcp_template(tp);
-               
+
 				/* Compute window scaling to request.  */
 				/*	while (tp->request_r_scale < TCP_MAX_WINSHIFT &&
 				 *		(TCP_MAXWIN << tp->request_r_scale) < so->so_rcv.sb_hiwat)
@@ -844,7 +844,7 @@ struct mbuf *m;
                 /*soisfconnecting(ns);*/
 
 				tcpstat.tcps_connattempt++;
-				
+
 				tp->t_state = TCPS_SYN_SENT;
 				tp->t_timer[TCPT_KEEP] = TCPTV_KEEP_INIT;
 				tp->iss = tcp_iss;
@@ -863,19 +863,19 @@ struct mbuf *m;
                 }
               }
 			}
-		
+
 			if (n != 4)
               return 0;
-		
+
 			rsh_exec(so,so->extra, user, inet_ntoa(so->so_faddr), args);
 			so->so_emu = 0;
 			so->extra=NULL;
-		
+
 			/* And finally, send the client a 0 character */
 			so_snd->sb_wptr[0] = 0;
 			so_snd->sb_wptr++;
 			so_snd->sb_cc++;
-		
+
 			return 0;
 		}
 
@@ -884,7 +884,7 @@ struct mbuf *m;
 			int num;
 			struct sbuf *so_snd = &so->so_snd;
 			struct sbuf *so_rcv = &so->so_rcv;
-		
+
 			/*
 			 * If there is binary data here, we save it in so->so_m
 			 */
@@ -899,16 +899,16 @@ struct mbuf *m;
 			    }
 			  }
 			} /* if(so->so_m==NULL) */
-		
+
 			/*
 			 * Append the line
 			 */
 			sbappendsb(so_rcv, m);
-		
+
 			/* To avoid going over the edge of the buffer, we reset it */
 			if (so_snd->sb_cc == 0)
 			   so_snd->sb_wptr = so_snd->sb_rptr = so_snd->sb_data;
-		
+
 			/*
 			 * A bit of a hack:
 			 * If the first packet we get here is 1 byte long, then it
@@ -927,13 +927,13 @@ struct mbuf *m;
 			  tcp_output(sototcpcb(so)); /* XXX */
 			} else
 			  m_free(m);
-		
+
 			num = 0;
 			while (num < so->so_rcv.sb_cc) {
 				if (*(so->so_rcv.sb_rptr + num) == '\n' ||
 				    *(so->so_rcv.sb_rptr + num) == '\r') {
 					int n;
-				
+
 					*(so_rcv->sb_rptr + num) = 0;
 					if (ctl_password && !ctl_password_ok) {
 						/* Need a password */

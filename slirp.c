@@ -63,7 +63,7 @@ static int get_dns_addr(struct in_addr *pdns_addr)
 #if 0
     printf( "DNS Servers:\n" );
     printf( "DNS Addr:%s\n", pIPAddr->IpAddress.String );
-   
+
     pIPAddr = FixedInfo -> DnsServerList.Next;
     while ( pIPAddr ) {
             printf( "DNS Addr:%s\n", pIPAddr ->IpAddress.String );

@@ -345,7 +345,7 @@ slirp_exit(exit_status)
 		if (!dfd)
 		   debug_init("slirp_stats", 0xf);
 		lprint_arg = (char **)&dfd;
-	
+
 		ipstats();
 		tcpstats();
 		udpstats();
