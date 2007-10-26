@@ -46,11 +46,8 @@
 #include <slirp.h>
 
 /* patchable/settable parameters for tcp */
-int tcp_mssdflt = TCP_MSS;
-int tcp_rttdflt = TCPTV_SRTTDFLT / PR_SLOWHZ;
-int tcp_do_rfc1323 = 0; /* Don't do rfc1323 performance enhancements */
-int tcp_rcvspace; /* You may want to change this */
-int tcp_sndspace; /* Keep small if you have an error prone link */
+/* Don't do rfc1323 performance enhancements */
+#define TCP_DO_RFC1323 0
 
 /*
  * Tcp initialization
@@ -59,14 +56,6 @@ void tcp_init()
 {
     tcp_iss = 1; /* wrong */
     tcb.so_next = tcb.so_prev = &tcb;
-
-    /* tcp_rcvspace = our Window we advertise to the remote */
-    tcp_rcvspace = TCP_RCVSPACE;
-    tcp_sndspace = TCP_SNDSPACE;
-
-    /* Make sure tcp_sndspace is at least 2*MSS */
-    if (tcp_sndspace < 2 * (min(if_mtu, if_mru) - sizeof(struct tcpiphdr)))
-        tcp_sndspace = 2 * (min(if_mtu, if_mru) - sizeof(struct tcpiphdr));
 }
 
 /*
@@ -140,7 +129,7 @@ int flags;
 #else
         tlen = 0;
 #endif
-        m->m_data += if_maxlinkhdr;
+        m->m_data += IF_MAXLINKHDR;
         *mtod(m, struct tcpiphdr *) = *ti;
         ti = mtod(m, struct tcpiphdr *);
         flags = TH_ACK;
@@ -187,7 +176,7 @@ int flags;
     if (flags & TH_RST)
         ((struct ip *)ti)->ip_ttl = MAXTTL;
     else
-        ((struct ip *)ti)->ip_ttl = ip_defttl;
+        ((struct ip *)ti)->ip_ttl = IPDEFTTL;
 
     (void)ip_output((struct socket *)0, m);
 }
@@ -207,9 +196,9 @@ struct tcpcb *tcp_newtcpcb(so) struct socket *so;
 
     memset((char *)tp, 0, sizeof(struct tcpcb));
     tp->seg_next = tp->seg_prev = (tcpiphdrp_32)tp;
-    tp->t_maxseg = tcp_mssdflt;
+    tp->t_maxseg = TCP_MSS;
 
-    tp->t_flags = tcp_do_rfc1323 ? (TF_REQ_SCALE | TF_REQ_TSTMP) : 0;
+    tp->t_flags = TCP_DO_RFC1323 ? (TF_REQ_SCALE | TF_REQ_TSTMP) : 0;
     tp->t_socket = so;
 
     /*
@@ -218,7 +207,7 @@ struct tcpcb *tcp_newtcpcb(so) struct socket *so;
      * reasonable initial retransmit time.
      */
     tp->t_srtt = TCPTV_SRTTBASE;
-    tp->t_rttvar = tcp_rttdflt * PR_SLOWHZ << 2;
+    tp->t_rttvar = TCPTV_SRTTDFLT << 2;
     tp->t_rttmin = TCPTV_MIN;
 
     TCPT_RANGESET(tp->t_rxtcur,
@@ -306,6 +295,7 @@ struct tcpcb *tcp_close(tp) register struct tcpcb *tp;
     return ((struct tcpcb *)0);
 }
 
+#ifdef notdef
 void tcp_drain()
 {
     /* XXX */
@@ -315,9 +305,6 @@ void tcp_drain()
  * When a source quench is received, close congestion window
  * to one segment.  We will gradually open it again as we proceed.
  */
-
-#ifdef notdef
-
 void tcp_quench(i, errno)
 
     int errno;
@@ -545,7 +532,7 @@ int tcp_attach(so) struct socket *so;
 /*
  * Set the socket's type of service field
  */
-struct tos_t tcptos[] = {
+static const struct tos_t tcptos[] = {
     { 0, 20, IPTOS_THROUGHPUT, 0 }, /* ftp data */
     { 21, 21, IPTOS_LOWDELAY, EMU_FTP }, /* ftp control */
     { 0, 23, IPTOS_LOWDELAY, 0 }, /* telnet */
@@ -561,7 +548,7 @@ struct tos_t tcptos[] = {
     { 0, 0, 0, 0 }
 };
 
-struct emu_t *tcpemu = 0;
+static struct emu_t *tcpemu = 0;
 
 /*
  * Return TOS according to the above table
@@ -650,7 +637,7 @@ struct mbuf *m;
             so_rcv->sb_rptr += m->m_len;
             m->m_data[m->m_len] = 0; /* NULL terminate */
             if (strchr(m->m_data, '\r') || strchr(m->m_data, '\n')) {
-                if (sscanf(so_rcv->sb_data, "%d%*[ ,]%d", &n1, &n2) == 2) {
+                if (sscanf(so_rcv->sb_data, "%u%*[ ,]%u", &n1, &n2) == 2) {
                     HTONS(n1);
                     HTONS(n2);
                     /* n2 is the one on our host */
@@ -977,7 +964,7 @@ do_prompt:
             /*
              * Need to emulate the PORT command
              */
-            x = sscanf(bptr, "ORT %d,%d,%d,%d,%d,%d\r\n%256[^\177]", &n1, &n2,
+            x = sscanf(bptr, "ORT %u,%u,%u,%u,%u,%u\r\n%256[^\177]", &n1, &n2,
                        &n3, &n4, &n5, &n6, buff);
             if (x < 6)
                 return 1;
@@ -1010,7 +997,7 @@ do_prompt:
              */
             x = sscanf(
                 bptr,
-                "27 Entering Passive Mode (%d,%d,%d,%d,%d,%d)\r\n%256[^\177]",
+                "27 Entering Passive Mode (%u,%u,%u,%u,%u,%u)\r\n%256[^\177]",
                 &n1, &n2, &n3, &n4, &n5, &n6, buff);
             if (x < 6)
                 return 1;

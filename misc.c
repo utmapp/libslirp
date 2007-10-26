@@ -8,8 +8,7 @@
 #define WANT_SYS_IOCTL_H
 #include <slirp.h>
 
-u_int curtime, time_fasttimo, last_slowtimo, detach_time;
-u_int detach_wait = 600000; /* 10 minutes */
+u_int curtime, time_fasttimo, last_slowtimo;
 
 #if 0
 int x_port = -1;
@@ -197,9 +196,7 @@ char *strerror(error) int error;
 
 #ifdef _WIN32
 
-int fork_exec(so, ex, do_pty) struct socket *so;
-char *ex;
-int do_pty;
+int fork_exec(struct socket *so, const char *ex, int do_pty)
 {
     /* not implemented */
     return 0;
@@ -207,6 +204,7 @@ int do_pty;
 
 #else
 
+#ifndef CONFIG_QEMU
 int slirp_openpty(amaster, aslave) int *amaster, *aslave;
 {
     register int master, slave;
@@ -266,6 +264,7 @@ int slirp_openpty(amaster, aslave) int *amaster, *aslave;
     return (-1);
 #endif
 }
+#endif
 
 /*
  * XXX This is ugly
@@ -278,22 +277,20 @@ int slirp_openpty(amaster, aslave) int *amaster, *aslave;
  * do_pty = 1   Fork/exec using slirp.telnetd
  * do_ptr = 2   Fork/exec using pty
  */
-int fork_exec(so, ex, do_pty) struct socket *so;
-char *ex;
-int do_pty;
+int fork_exec(struct socket *so, const char *ex, int do_pty)
 {
     int s;
     struct sockaddr_in addr;
     int addrlen = sizeof(addr);
     int opt;
-    int master;
+    int master = -1;
     char *argv[256];
 #if 0
 	char buff[256];
 #endif
     /* don't want to clobber the original */
     char *bptr;
-    char *curarg;
+    const char *curarg;
     int c, i, ret;
 
     DEBUG_CALL("fork_exec");
@@ -302,10 +299,12 @@ int do_pty;
     DEBUG_ARG("do_pty = %lx", (long)do_pty);
 
     if (do_pty == 2) {
-        if (slirp_openpty(&master, &s) == -1) {
-            lprint("Error: openpty failed: %s\n", strerror(errno));
-            return 0;
-        }
+#if 0
+		if (slirp_openpty(&master, &s) == -1) {
+			lprint("Error: openpty failed: %s\n", strerror(errno));
+			return 0;
+		}
+#endif
     } else {
         addr.sin_family = AF_INET;
         addr.sin_port = 0;
@@ -365,7 +364,7 @@ int do_pty;
         dup2(s, 0);
         dup2(s, 1);
         dup2(s, 2);
-        for (s = 3; s <= 255; s++)
+        for (s = getdtablesize() - 1; s >= 3; s--)
             close(s);
 
         i = 0;

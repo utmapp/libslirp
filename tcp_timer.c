@@ -36,16 +36,13 @@
 
 #include <slirp.h>
 
-int tcp_keepidle = TCPTV_KEEP_IDLE;
-int tcp_keepintvl = TCPTV_KEEPINTVL;
-int tcp_maxidle;
-int so_options = DO_KEEPALIVE;
-
 #ifdef LOG_ENABLED
 struct tcpstat tcpstat; /* tcp statistics */
 #endif
 
 u_int32_t tcp_now; /* for RFC 1323 timestamps */
+
+static struct tcpcb *tcp_timers(register struct tcpcb *tp, int timer);
 
 /*
  * Fast timeout routine for processing delayed acks
@@ -82,7 +79,6 @@ void tcp_slowtimo()
 
     DEBUG_CALL("tcp_slowtimo");
 
-    tcp_maxidle = TCPTV_KEEPCNT * tcp_keepintvl;
     /*
      * Search through tcb's and update active timers.
      */
@@ -125,14 +121,13 @@ void tcp_canceltimers(tp) struct tcpcb *tp;
         tp->t_timer[i] = 0;
 }
 
-int tcp_backoff[TCP_MAXRXTSHIFT + 1] = { 1,  2,  4,  8,  16, 32, 64,
-                                         64, 64, 64, 64, 64, 64 };
+const int tcp_backoff[TCP_MAXRXTSHIFT + 1] = { 1,  2,  4,  8,  16, 32, 64,
+                                               64, 64, 64, 64, 64, 64 };
 
 /*
  * TCP timer processing.
  */
-struct tcpcb *tcp_timers(tp, timer) register struct tcpcb *tp;
-int timer;
+static struct tcpcb *tcp_timers(register struct tcpcb *tp, int timer)
 {
     register int rexmt;
 
@@ -146,8 +141,8 @@ int timer;
      * control block.  Otherwise, check again in a bit.
      */
     case TCPT_2MSL:
-        if (tp->t_state != TCPS_TIME_WAIT && tp->t_idle <= tcp_maxidle)
-            tp->t_timer[TCPT_2MSL] = tcp_keepintvl;
+        if (tp->t_state != TCPS_TIME_WAIT && tp->t_idle <= TCP_MAXIDLE)
+            tp->t_timer[TCPT_2MSL] = TCPTV_KEEPINTVL;
         else
             tp = tcp_close(tp);
         break;
@@ -278,8 +273,8 @@ int timer;
             goto dropit;
 
         /*		if (tp->t_socket->so_options & SO_KEEPALIVE && */
-        if ((so_options) && tp->t_state <= TCPS_CLOSE_WAIT) {
-            if (tp->t_idle >= tcp_keepidle + tcp_maxidle)
+        if ((SO_OPTIONS) && tp->t_state <= TCPS_CLOSE_WAIT) {
+            if (tp->t_idle >= TCPTV_KEEP_IDLE + TCP_MAXIDLE)
                 goto dropit;
             /*
              * Send a packet designed to force a response
@@ -305,9 +300,9 @@ int timer;
             tcp_respond(tp, &tp->t_template, (struct mbuf *)NULL, tp->rcv_nxt,
                         tp->snd_una - 1, 0);
 #endif
-            tp->t_timer[TCPT_KEEP] = tcp_keepintvl;
+            tp->t_timer[TCPT_KEEP] = TCPTV_KEEPINTVL;
         } else
-            tp->t_timer[TCPT_KEEP] = tcp_keepidle;
+            tp->t_timer[TCPT_KEEP] = TCPTV_KEEP_IDLE;
         break;
 
     dropit:

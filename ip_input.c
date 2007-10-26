@@ -45,13 +45,17 @@
 #include <slirp.h>
 #include "ip_icmp.h"
 
-int ip_defttl;
-
 #ifdef LOG_ENABLED
 struct ipstat ipstat;
 #endif
 
 struct ipq ipq;
+
+static struct ip *ip_reass(register struct ipasfrag *ip,
+                           register struct ipq *fp);
+static void ip_freef(struct ipq *fp);
+static void ip_enq(register struct ipasfrag *p, register struct ipasfrag *prev);
+static void ip_deq(register struct ipasfrag *p);
 
 /*
  * IP initialization: fill in IP protocol switch table.
@@ -63,7 +67,6 @@ void ip_init()
     ip_id = tt.tv_sec & 0xffff;
     udp_init();
     tcp_init();
-    ip_defttl = IPDEFTTL;
 }
 
 /*
@@ -235,8 +238,8 @@ bad:
  * reassembly of this datagram already exists, then it
  * is given as fp; otherwise have to make a chain.
  */
-struct ip *ip_reass(ip, fp) register struct ipasfrag *ip;
-register struct ipq *fp;
+static struct ip *ip_reass(register struct ipasfrag *ip,
+                           register struct ipq *fp)
 {
     register struct mbuf *m = dtom(ip);
     register struct ipasfrag *q;
@@ -393,7 +396,7 @@ dropfrag:
  * Free a fragment reassembly header and all
  * associated datagrams.
  */
-void ip_freef(fp) struct ipq *fp;
+static void ip_freef(struct ipq *fp)
 {
     register struct ipasfrag *q, *p;
 
@@ -411,7 +414,7 @@ void ip_freef(fp) struct ipq *fp;
  * Put an ip fragment on a reassembly chain.
  * Like insque, but pointers in middle of structure.
  */
-void ip_enq(p, prev) register struct ipasfrag *p, *prev;
+static void ip_enq(register struct ipasfrag *p, register struct ipasfrag *prev)
 {
     DEBUG_CALL("ip_enq");
     DEBUG_ARG("prev = %lx", (long)prev);
@@ -424,7 +427,7 @@ void ip_enq(p, prev) register struct ipasfrag *p, *prev;
 /*
  * To ip_enq as remque is to insque.
  */
-void ip_deq(p) register struct ipasfrag *p;
+static void ip_deq(register struct ipasfrag *p)
 {
     ((struct ipasfrag *)(p->ipf_prev))->ipf_next = p->ipf_next;
     ((struct ipasfrag *)(p->ipf_next))->ipf_prev = p->ipf_prev;
