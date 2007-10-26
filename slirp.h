@@ -266,8 +266,6 @@ long gethostid _P((void));
 
 void lprint _P((const char *, ...));
 
-extern int do_echo;
-
 #if SIZEOF_CHAR_P == 4
 #define insque_32 insque
 #define remque_32 remque

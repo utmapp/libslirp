@@ -579,7 +579,9 @@ u_int8_t tcp_tos(so) struct socket *so;
     return 0;
 }
 
+#if 0
 int do_echo = -1;
+#endif
 
 /*
  * Emulate programs that try and connect to us
