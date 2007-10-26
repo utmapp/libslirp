@@ -20,6 +20,7 @@ extern char *strerror _P((int));
 
 /* Carry over one item from main.c so that the tty's restored.
  * Only done when the tty being used is /dev/tty --RedWolf */
+#ifndef CONFIG_QEMU
 extern struct termios slirp_tty_settings;
 extern int slirp_tty_restore;
 
@@ -66,7 +67,9 @@ int n;
     }
 }
 #endif
+#endif
 
+#ifdef LOG_ENABLED
 #if 0
 /*
  * Statistic routines
@@ -76,7 +79,7 @@ int n;
  * the link as well.
  */
 
-void
+static void
 ttystats(ttyp)
 	struct ttys *ttyp;
 {
@@ -115,8 +118,8 @@ ttystats(ttyp)
 	lprint("  %6d bad input packets\r\n", is->in_mbad);
 }
 
-void
-allttystats()
+static void
+allttystats(void)
 {
 	struct ttys *ttyp;
 
@@ -125,7 +128,7 @@ allttystats()
 }
 #endif
 
-void ipstats()
+static void ipstats(void)
 {
     lprint(" \r\n");
 
@@ -150,26 +153,25 @@ void ipstats()
     lprint("  %6d total packets delivered\r\n", ipstat.ips_delivered);
 }
 
-#if 0
-void
-vjstats()
+#ifndef CONFIG_QEMU
+static void vjstats(void)
 {
-	lprint(" \r\n");
+    lprint(" \r\n");
 
-	lprint("VJ compression stats:\r\n");
+    lprint("VJ compression stats:\r\n");
 
-	lprint("  %6d outbound packets (%d compressed)\r\n",
-	       comp_s.sls_packets, comp_s.sls_compressed);
-	lprint("  %6d searches for connection stats (%d misses)\r\n",
-	       comp_s.sls_searches, comp_s.sls_misses);
-	lprint("  %6d inbound uncompressed packets\r\n", comp_s.sls_uncompressedin);
-	lprint("  %6d inbound compressed packets\r\n", comp_s.sls_compressedin);
-	lprint("  %6d inbound unknown type packets\r\n", comp_s.sls_errorin);
-	lprint("  %6d inbound packets tossed due to error\r\n", comp_s.sls_tossed);
+    lprint("  %6d outbound packets (%d compressed)\r\n", comp_s.sls_packets,
+           comp_s.sls_compressed);
+    lprint("  %6d searches for connection stats (%d misses)\r\n",
+           comp_s.sls_searches, comp_s.sls_misses);
+    lprint("  %6d inbound uncompressed packets\r\n", comp_s.sls_uncompressedin);
+    lprint("  %6d inbound compressed packets\r\n", comp_s.sls_compressedin);
+    lprint("  %6d inbound unknown type packets\r\n", comp_s.sls_errorin);
+    lprint("  %6d inbound packets tossed due to error\r\n", comp_s.sls_tossed);
 }
 #endif
 
-void tcpstats()
+static void tcpstats(void)
 {
     lprint(" \r\n");
 
@@ -246,7 +248,7 @@ void tcpstats()
      * tcpstat.tcps_pawsdrop); */
 }
 
-void udpstats()
+static void udpstats(void)
 {
     lprint(" \r\n");
 
@@ -260,7 +262,7 @@ void udpstats()
     lprint("  %6d datagrams sent\r\n", udpstat.udps_opackets);
 }
 
-void icmpstats()
+static void icmpstats(void)
 {
     lprint(" \r\n");
     lprint("ICMP stats:\r\n");
@@ -272,7 +274,7 @@ void icmpstats()
     lprint("  %6d ICMP packets sent in reply\r\n", icmpstat.icps_reflect);
 }
 
-void mbufstats()
+static void mbufstats(void)
 {
     struct mbuf *m;
     int i;
@@ -295,7 +297,7 @@ void mbufstats()
     lprint("  %6d mbufs queued as packets\r\n\r\n", if_queued);
 }
 
-void sockstats()
+static void sockstats(void)
 {
     char buff[256];
     int n;
@@ -329,46 +331,58 @@ void sockstats()
                ntohs(so->so_fport), so->so_rcv.sb_cc, so->so_snd.sb_cc);
     }
 }
+#endif
 
-#if 0
-void
-slirp_exit(exit_status)
-	int exit_status;
+#ifndef CONFIG_QEMU
+void slirp_exit(exit_status) int exit_status;
 {
-	struct ttys *ttyp;
+    struct ttys *ttyp;
 
-	DEBUG_CALL("slirp_exit");
-	DEBUG_ARG("exit_status = %d", exit_status);
+    DEBUG_CALL("slirp_exit");
+    DEBUG_ARG("exit_status = %d", exit_status);
 
-	if (dostats) {
-		lprint_print = (int (*) _P((void *, const char *, va_list)))vfprintf;
-		if (!dfd)
-		   debug_init("slirp_stats", 0xf);
-		lprint_arg = (char **)&dfd;
+    if (dostats) {
+        lprint_print = (int(*) _P((void *, const char *, va_list)))vfprintf;
+        if (!dfd)
+            debug_init("slirp_stats", 0xf);
+        lprint_arg = (char **)&dfd;
 
-		ipstats();
-		tcpstats();
-		udpstats();
-		icmpstats();
-		mbufstats();
-		sockstats();
-		allttystats();
-		vjstats();
-	}
+        ipstats();
+        tcpstats();
+        udpstats();
+        icmpstats();
+        mbufstats();
+        sockstats();
+        allttystats();
+        vjstats();
+    }
 
-	for (ttyp = ttys; ttyp; ttyp = ttyp->next)
-	   tty_detached(ttyp, 1);
+    for (ttyp = ttys; ttyp; ttyp = ttyp->next)
+        tty_detached(ttyp, 1);
 
-	if (slirp_forked) {
-		/* Menendez time */
-		if (kill(getppid(), SIGQUIT) < 0)
-			lprint("Couldn't kill parent process %ld!\n",
-			    (long) getppid());
-    	}
+    if (slirp_forked) {
+        /* Menendez time */
+        if (kill(getppid(), SIGQUIT) < 0)
+            lprint("Couldn't kill parent process %ld!\n", (long)getppid());
+    }
 
-	/* Restore the terminal if we gotta */
-	if(slirp_tty_restore)
-	  tcsetattr(0,TCSANOW, &slirp_tty_settings);  /* NOW DAMMIT! */
-	exit(exit_status);
+    /* Restore the terminal if we gotta */
+    if (slirp_tty_restore)
+        tcsetattr(0, TCSANOW, &slirp_tty_settings); /* NOW DAMMIT! */
+    exit(exit_status);
 }
 #endif
+
+void slirp_stats(void)
+{
+#ifdef LOG_ENABLED
+    ipstats();
+    tcpstats();
+    udpstats();
+    icmpstats();
+    mbufstats();
+    sockstats();
+#else
+    lprint("SLIRP statistics code not compiled.\n");
+#endif
+}

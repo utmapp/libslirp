@@ -254,9 +254,9 @@ struct tcpcb *tcp_drop(struct tcpcb *tp, int err)
     if (TCPS_HAVERCVDSYN(tp->t_state)) {
         tp->t_state = TCPS_CLOSED;
         (void)tcp_output(tp);
-        tcpstat.tcps_drops++;
+        STAT(tcpstat.tcps_drops++);
     } else
-        tcpstat.tcps_conndrops++;
+        STAT(tcpstat.tcps_conndrops++);
     /*	if (errno == ETIMEDOUT && tp->t_softerror)
      *		errno = tp->t_softerror;
      */
@@ -302,7 +302,7 @@ struct tcpcb *tcp_close(tp) register struct tcpcb *tp;
     sbfree(&so->so_rcv);
     sbfree(&so->so_snd);
     sofree(so);
-    tcpstat.tcps_closed++;
+    STAT(tcpstat.tcps_closed++);
     return ((struct tcpcb *)0);
 }
 
@@ -519,7 +519,7 @@ void tcp_connect(inso) struct socket *inso;
      */
 
     /*	soisconnecting(so); */ /* NOFDREF used instead */
-    tcpstat.tcps_connattempt++;
+    STAT(tcpstat.tcps_connattempt++);
 
     tp->t_state = TCPS_SYN_SENT;
     tp->t_timer[TCPT_KEEP] = TCPTV_KEEP_INIT;
@@ -843,7 +843,7 @@ struct mbuf *m;
 
                 /*soisfconnecting(ns);*/
 
-				tcpstat.tcps_connattempt++;
+				STAT(tcpstat.tcps_connattempt++);
 
 				tp->t_state = TCPS_SYN_SENT;
 				tp->t_timer[TCPT_KEEP] = TCPTV_KEEP_INIT;

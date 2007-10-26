@@ -63,6 +63,8 @@ struct icmpstat {
         { 0, 0 }, { "maskrepl", CTLTYPE_INT }, { "stats", CTLTYPE_STRUCT }, \
     }
 
+#ifdef LOG_ENABLED
 extern struct icmpstat icmpstat;
+#endif
 
 #endif

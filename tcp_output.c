@@ -261,7 +261,7 @@ again:
     /*
      * No reason to send a segment, just return.
      */
-    tcpstat.tcps_didnuttin++;
+    STAT(tcpstat.tcps_didnuttin++);
 
     return (0);
 
@@ -335,13 +335,13 @@ send:
      */
     if (len) {
         if (tp->t_force && len == 1)
-            tcpstat.tcps_sndprobe++;
+            STAT(tcpstat.tcps_sndprobe++);
         else if (SEQ_LT(tp->snd_nxt, tp->snd_max)) {
-            tcpstat.tcps_sndrexmitpack++;
-            tcpstat.tcps_sndrexmitbyte += len;
+            STAT(tcpstat.tcps_sndrexmitpack++);
+            STAT(tcpstat.tcps_sndrexmitbyte += len);
         } else {
-            tcpstat.tcps_sndpack++;
-            tcpstat.tcps_sndbyte += len;
+            STAT(tcpstat.tcps_sndpack++);
+            STAT(tcpstat.tcps_sndbyte += len);
         }
 
         m = m_get();
@@ -377,13 +377,13 @@ send:
             flags |= TH_PUSH;
     } else {
         if (tp->t_flags & TF_ACKNOW)
-            tcpstat.tcps_sndacks++;
+            STAT(tcpstat.tcps_sndacks++);
         else if (flags & (TH_SYN | TH_FIN | TH_RST))
-            tcpstat.tcps_sndctrl++;
+            STAT(tcpstat.tcps_sndctrl++);
         else if (SEQ_GT(tp->snd_up, tp->snd_una))
-            tcpstat.tcps_sndurg++;
+            STAT(tcpstat.tcps_sndurg++);
         else
-            tcpstat.tcps_sndwinup++;
+            STAT(tcpstat.tcps_sndwinup++);
 
         m = m_get();
         if (m == NULL) {
@@ -495,7 +495,7 @@ send:
                 if (tp->t_rtt == 0) {
                     tp->t_rtt = 1;
                     tp->t_rtseq = startseq;
-                    tcpstat.tcps_segstimed++;
+                    STAT(tcpstat.tcps_segstimed++);
                 }
             }
 
@@ -559,7 +559,7 @@ send:
              */
             return (error);
         }
-        tcpstat.tcps_sndtotal++;
+        STAT(tcpstat.tcps_sndtotal++);
 
         /*
          * Data sent (as far as we can tell).

@@ -184,6 +184,7 @@ typedef u_int32_t mbufp_32;
 #endif
 #define REASS_MBUF(ti) (*(mbufp_32 *)&((ti)->ti_t))
 
+#ifdef LOG_ENABLED
 /*
  * TCP statistics.
  * Many of these should be kept per connection,
@@ -246,6 +247,8 @@ struct tcpstat {
 };
 
 extern struct tcpstat tcpstat; /* tcp statistics */
+#endif
+
 extern u_int32_t tcp_now; /* for RFC 1323 timestamps */
 
 #endif

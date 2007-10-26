@@ -41,7 +41,10 @@ int tcp_keepintvl = TCPTV_KEEPINTVL;
 int tcp_maxidle;
 int so_options = DO_KEEPALIVE;
 
+#ifdef LOG_ENABLED
 struct tcpstat tcpstat; /* tcp statistics */
+#endif
+
 u_int32_t tcp_now; /* for RFC 1323 timestamps */
 
 /*
@@ -61,7 +64,7 @@ void tcp_fasttimo()
                 (tp->t_flags & TF_DELACK)) {
                 tp->t_flags &= ~TF_DELACK;
                 tp->t_flags |= TF_ACKNOW;
-                tcpstat.tcps_delack++;
+                STAT(tcpstat.tcps_delack++);
                 (void)tcp_output(tp);
             }
 }
@@ -183,7 +186,7 @@ int timer;
                  * We tried our best, now the connection must die!
                  */
                 tp->t_rxtshift = TCP_MAXRXTSHIFT;
-                tcpstat.tcps_timeoutdrop++;
+                STAT(tcpstat.tcps_timeoutdrop++);
                 tp = tcp_drop(tp, tp->t_softerror);
                 /* tp->t_softerror : ETIMEDOUT); */ /* XXX */
                 return (tp); /* XXX */
@@ -195,7 +198,7 @@ int timer;
              */
             tp->t_rxtshift = 6;
         }
-        tcpstat.tcps_rexmttimeo++;
+        STAT(tcpstat.tcps_rexmttimeo++);
         rexmt = TCP_REXMTVAL(tp) * tcp_backoff[tp->t_rxtshift];
         TCPT_RANGESET(tp->t_rxtcur, rexmt, (short)tp->t_rttmin,
                       TCPTV_REXMTMAX); /* XXX */
@@ -258,7 +261,7 @@ int timer;
      * Force a byte to be output, if possible.
      */
     case TCPT_PERSIST:
-        tcpstat.tcps_persisttimeo++;
+        STAT(tcpstat.tcps_persisttimeo++);
         tcp_setpersist(tp);
         tp->t_force = 1;
         (void)tcp_output(tp);
@@ -270,7 +273,7 @@ int timer;
      * or drop connection if idle for too long.
      */
     case TCPT_KEEP:
-        tcpstat.tcps_keeptimeo++;
+        STAT(tcpstat.tcps_keeptimeo++);
         if (tp->t_state < TCPS_ESTABLISHED)
             goto dropit;
 
@@ -290,7 +293,7 @@ int timer;
              * by the protocol spec, this requires the
              * correspondent TCP to respond.
              */
-            tcpstat.tcps_keepprobe++;
+            STAT(tcpstat.tcps_keepprobe++);
 #ifdef TCP_COMPAT_42
             /*
              * The keepalive packet must have nonzero length
@@ -308,7 +311,7 @@ int timer;
         break;
 
     dropit:
-        tcpstat.tcps_keepdrops++;
+        STAT(tcpstat.tcps_keepdrops++);
         tp = tcp_drop(tp, 0); /* ETIMEDOUT); */
         break;
     }
