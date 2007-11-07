@@ -19,7 +19,7 @@
 #ifndef CONFIG_QEMU
 #include "version.h"
 #endif
-#include "config.h"
+#include "config-host.h"
 #include "slirp_config.h"
 
 #ifdef _WIN32
