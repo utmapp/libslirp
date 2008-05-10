@@ -283,7 +283,7 @@ again:
     }
 
     /* Encapsulate the packet for sending */
-    if_encap(ifm->m_data, ifm->m_len);
+    if_encap((uint8_t *)ifm->m_data, ifm->m_len);
 
     m_free(ifm);
 

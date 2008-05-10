@@ -321,7 +321,7 @@ int udp_output(struct socket *so, struct mbuf *m, struct sockaddr_in *addr)
         if ((so->so_faddr.s_addr & htonl(0x000000ff)) == htonl(0xff))
             saddr.sin_addr.s_addr = alias_addr.s_addr;
         else if (addr->sin_addr.s_addr == loopback_addr.s_addr ||
-                 ((so->so_faddr.s_addr & htonl(CTL_DNS)) == htonl(CTL_DNS)))
+                 (ntohl(so->so_faddr.s_addr) & 0xff) != CTL_ALIAS)
             saddr.sin_addr.s_addr = so->so_faddr.s_addr;
     }
     daddr.sin_addr = so->so_laddr;
@@ -403,7 +403,7 @@ static u_int8_t udp_tos(struct socket *so)
 static void udp_emu(struct socket *so, struct mbuf *m)
 {
     struct sockaddr_in addr;
-    int addrlen = sizeof(addr);
+    socklen_t addrlen = sizeof(addr);
 #ifdef EMULATE_TALK
     CTL_MSG_OLD *omsg;
     CTL_MSG *nmsg;
@@ -631,7 +631,7 @@ int flags;
 {
     struct sockaddr_in addr;
     struct socket *so;
-    int addrlen = sizeof(struct sockaddr_in), opt = 1;
+    socklen_t addrlen = sizeof(struct sockaddr_in), opt = 1;
 
     if ((so = socreate()) == NULL) {
         free(so);
