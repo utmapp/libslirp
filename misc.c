@@ -394,8 +394,8 @@ int fork_exec(struct socket *so, const char *ex, int do_pty)
         {
             char buff[256];
 
-            sprintf(buff, "Error: execvp of %s failed: %s\n", argv[0],
-                    strerror(errno));
+            snprintf(buff, sizeof(buff), "Error: execvp of %s failed: %s\n",
+                     argv[0], strerror(errno));
             write(2, buff, strlen(buff) + 1);
         }
         close(0);
