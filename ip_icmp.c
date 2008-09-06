@@ -229,7 +229,7 @@ char *message;
     if (!msrc)
         goto end_error;
     ip = mtod(msrc, struct ip *);
-#if DEBUG
+#ifdef DEBUG
     {
         char bufa[20], bufb[20];
         strcpy(bufa, inet_ntoa(ip->ip_src));
@@ -294,7 +294,7 @@ char *message;
     HTONS(icp->icmp_ip.ip_id);
     HTONS(icp->icmp_ip.ip_off);
 
-#if DEBUG
+#ifdef DEBUG
     if (message) { /* DEBUG : append message to ICMP packet */
         int message_len;
         char *cpnt;
