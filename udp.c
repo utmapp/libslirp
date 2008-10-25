@@ -470,14 +470,14 @@ static void udp_emu(struct socket *so, struct mbuf *m)
             type = omsg->type;
             OTOSIN(omsg, ctl_addr)->sin_port = addr.sin_port;
             OTOSIN(omsg, ctl_addr)->sin_addr = our_addr;
-            strncpy(omsg->l_name, getlogin(), NAME_SIZE_OLD);
+            pstrcpy(omsg->l_name, NAME_SIZE_OLD, getlogin());
         } else { /* new talk */
             omsg = (CTL_MSG_OLD *)buff;
             nmsg = mtod(m, CTL_MSG *);
             type = nmsg->type;
             OTOSIN(nmsg, ctl_addr)->sin_port = addr.sin_port;
             OTOSIN(nmsg, ctl_addr)->sin_addr = our_addr;
-            strncpy(nmsg->l_name, getlogin(), NAME_SIZE_OLD);
+            pstrcpy(nmsg->l_name, NAME_SIZE_OLD, getlogin());
         }
 
         if (type == LOOK_UP)
