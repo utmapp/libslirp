@@ -157,7 +157,7 @@ int port;
     (*ex_ptr)->ex_fport = port;
     (*ex_ptr)->ex_addr = addr;
     (*ex_ptr)->ex_pty = do_pty;
-    (*ex_ptr)->ex_exec = strdup(exec);
+    (*ex_ptr)->ex_exec = (do_pty == 3) ? exec : strdup(exec);
     (*ex_ptr)->ex_next = tmp_ptr;
     return 0;
 }

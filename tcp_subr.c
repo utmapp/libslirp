@@ -1271,6 +1271,11 @@ int tcp_ctl(so) struct socket *so;
         for (ex_ptr = exec_list; ex_ptr; ex_ptr = ex_ptr->ex_next) {
             if (ex_ptr->ex_fport == so->so_fport &&
                 command == ex_ptr->ex_addr) {
+                if (ex_ptr->ex_pty == 3) {
+                    so->s = -1;
+                    so->extra = ex_ptr->ex_exec;
+                    return 1;
+                }
                 do_pty = ex_ptr->ex_pty;
                 goto do_exec;
             }
