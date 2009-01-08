@@ -155,6 +155,9 @@ int iphlen;
         goto bad;
     }
 
+    if (slirp_restrict)
+        goto bad;
+
     /*
      *  handle TFTP
      */
