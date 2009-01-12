@@ -1273,7 +1273,7 @@ int tcp_ctl(so) struct socket *so;
                 command == ex_ptr->ex_addr) {
                 if (ex_ptr->ex_pty == 3) {
                     so->s = -1;
-                    so->extra = ex_ptr->ex_exec;
+                    so->extra = (void *)ex_ptr->ex_exec;
                     return 1;
                 }
                 do_pty = ex_ptr->ex_pty;
