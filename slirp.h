@@ -268,14 +268,6 @@ long gethostid _P((void));
 
 void lprint _P((const char *, ...));
 
-#if SIZEOF_CHAR_P == 4
-#define insque_32 insque
-#define remque_32 remque
-#else
-void insque_32 _P((void *, void *));
-void remque_32 _P((void *));
-#endif
-
 #ifndef _WIN32
 #include <netdb.h>
 #endif

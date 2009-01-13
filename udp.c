@@ -133,8 +133,7 @@ int iphlen;
      * Checksum extended UDP header and data.
      */
     if (UDPCKSUM && uh->uh_sum) {
-        ((struct ipovly *)ip)->ih_next = 0;
-        ((struct ipovly *)ip)->ih_prev = 0;
+        memset(&((struct ipovly *)ip)->ih_mbuf, 0, sizeof(struct mbuf_ptr));
         ((struct ipovly *)ip)->ih_x1 = 0;
         ((struct ipovly *)ip)->ih_len = uh->uh_ulen;
         /* keep uh_sum for ICMP reply
@@ -280,7 +279,7 @@ int udp_output2(struct socket *so, struct mbuf *m, struct sockaddr_in *saddr,
      * and addresses and length put into network format.
      */
     ui = mtod(m, struct udpiphdr *);
-    ui->ui_next = ui->ui_prev = 0;
+    memset(&ui->ui_i.ih_mbuf, 0, sizeof(struct mbuf_ptr));
     ui->ui_x1 = 0;
     ui->ui_pr = IPPROTO_UDP;
     ui->ui_len =

@@ -265,8 +265,8 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
          * *_slowtimo needs calling if there are IP fragments
          * in the fragment queue, or there are TCP connections active
          */
-        do_slowtimo = ((tcb.so_next != &tcb) || ((struct ipasfrag *)&ipq !=
-                                                 (struct ipasfrag *)ipq.next));
+        do_slowtimo =
+            ((tcb.so_next != &tcb) || (&ipq.ip_link != ipq.ip_link.next));
 
         for (so = tcb.so_next; so != &tcb; so = so_next) {
             so_next = so->so_next;
