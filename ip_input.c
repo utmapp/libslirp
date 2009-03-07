@@ -57,7 +57,7 @@ static void ip_deq(register struct ipasfrag *p);
  * IP initialization: fill in IP protocol switch table.
  * All protocols not implemented in kernel go to raw IP protocol handler.
  */
-void ip_init()
+void ip_init(void)
 {
     ipq.ip_link.next = ipq.ip_link.prev = &ipq.ip_link;
     ip_id = tt.tv_sec & 0xffff;
@@ -69,7 +69,7 @@ void ip_init()
  * Ip input routine.  Checksum and byte swap header.  If fragmented
  * try to reassemble.  Process options.  Pass to next level.
  */
-void ip_input(m) struct mbuf *m;
+void ip_input(struct mbuf *m)
 {
     register struct ip *ip;
     int hlen;
@@ -217,7 +217,7 @@ void ip_input(m) struct mbuf *m;
         if (ip->ip_tos & 1 || ip->ip_off) {
             STAT(ipstat.ips_fragments++);
             ip = ip_reass(ip, fp);
-            if (ip == 0)
+            if (ip == NULL)
                 return;
             STAT(ipstat.ips_reassembled++);
             m = dtom(ip);
@@ -282,7 +282,7 @@ static struct ip *ip_reass(register struct ip *ip, register struct ipq *fp)
     /*
      * If first fragment to arrive, create a reassembly queue.
      */
-    if (fp == 0) {
+    if (fp == NULL) {
         struct mbuf *t;
         if ((t = m_get()) == NULL)
             goto dropfrag;
@@ -351,11 +351,11 @@ insert:
     for (q = fp->frag_link.next; q != (struct ipasfrag *)&fp->frag_link;
          q = q->ipf_next) {
         if (q->ipf_off != next)
-            return (0);
+            return NULL;
         next += q->ipf_len;
     }
     if (((struct ipasfrag *)(q->ipf_prev))->ipf_tos & 1)
-        return (0);
+        return NULL;
 
     /*
      * Reassembly is complete; concatenate fragments.
@@ -408,7 +408,7 @@ insert:
 dropfrag:
     STAT(ipstat.ips_fragdropped++);
     m_freem(m);
-    return (0);
+    return NULL;
 }
 
 /*
@@ -457,7 +457,7 @@ static void ip_deq(register struct ipasfrag *p)
  * if a timer expires on a reassembly
  * queue, discard it.
  */
-void ip_slowtimo()
+void ip_slowtimo(void)
 {
     struct qlink *l;
 
@@ -465,7 +465,7 @@ void ip_slowtimo()
 
     l = ipq.ip_link.next;
 
-    if (l == 0)
+    if (l == NULL)
         return;
 
     while (l != &ipq.ip_link) {
@@ -686,8 +686,7 @@ return (1);
  * will be moved, and return value is their length.
  * (XXX) should be deleted; last arg currently ignored.
  */
-void ip_stripoptions(m, mopt) register struct mbuf *m;
-struct mbuf *mopt;
+void ip_stripoptions(register struct mbuf *m, struct mbuf *mopt)
 {
     register int i;
     struct ip *ip = mtod(m, struct ip *);

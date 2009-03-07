@@ -69,8 +69,7 @@ static const int icmp_flush[19] = {
 /*
  * Process a received ICMP message.
  */
-void icmp_input(m, hlen) struct mbuf *m;
-int hlen;
+void icmp_input(struct mbuf *m, int hlen)
 {
     register struct icmp *icp;
     register struct ip *ip = mtod(m, struct ip *);
@@ -330,7 +329,7 @@ end_error:
 /*
  * Reflect the ip packet back to the source
  */
-void icmp_reflect(m) struct mbuf *m;
+void icmp_reflect(struct mbuf *m)
 {
     register struct ip *ip = mtod(m, struct ip *);
     int hlen = ip->ip_hl << 2;

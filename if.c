@@ -29,7 +29,7 @@ static void ifs_remque(struct mbuf *ifm)
     ifm->ifs_next->ifs_prev = ifm->ifs_prev;
 }
 
-void if_init()
+void if_init(void)
 {
     if_fastq.ifq_next = if_fastq.ifq_prev = &if_fastq;
     if_batchq.ifq_next = if_batchq.ifq_prev = &if_batchq;
@@ -129,8 +129,7 @@ if_input(ttyp)
  * to the fastq (eg. if the user does an ls -alR in a telnet session,
  * it'll temporarily get downgraded to the batchq)
  */
-void if_output(so, ifm) struct socket *so;
-struct mbuf *ifm;
+void if_output(struct socket *so, struct mbuf *ifm)
 {
     struct mbuf *ifq;
     int on_fastq = 1;

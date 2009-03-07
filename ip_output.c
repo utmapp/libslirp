@@ -52,8 +52,7 @@ u_int16_t ip_id;
  * The mbuf chain containing the packet will be freed.
  * The mbuf opt, if present, will not be freed.
  */
-int ip_output(so, m0) struct socket *so;
-struct mbuf *m0;
+int ip_output(struct socket *so, struct mbuf *m0)
 {
     register struct ip *ip;
     register struct mbuf *m = m0;
@@ -133,7 +132,7 @@ struct mbuf *m0;
         for (off = hlen + len; off < (u_int16_t)ip->ip_len; off += len) {
             register struct ip *mhip;
             m = m_get();
-            if (m == 0) {
+            if (m == NULL) {
                 error = -1;
                 STAT(ipstat.ips_odropped++);
                 goto sendorfree;
@@ -183,7 +182,7 @@ struct mbuf *m0;
     sendorfree:
         for (m = m0; m; m = m0) {
             m0 = m->m_nextpkt;
-            m->m_nextpkt = 0;
+            m->m_nextpkt = NULL;
             if (error == 0)
                 if_output(so, m);
             else

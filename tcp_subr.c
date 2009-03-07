@@ -48,7 +48,7 @@
 /*
  * Tcp initialization
  */
-void tcp_init()
+void tcp_init(void)
 {
     tcp_iss = 1; /* wrong */
     tcb.so_next = tcb.so_prev = &tcb;
@@ -61,7 +61,7 @@ void tcp_init()
  * necessary when the connection is used.
  */
 /* struct tcpiphdr * */
-void tcp_template(tp) struct tcpcb *tp;
+void tcp_template(struct tcpcb *tp)
 {
     struct socket *so = tp->t_socket;
     register struct tcpiphdr *n = &tp->t_template;
@@ -98,11 +98,8 @@ void tcp_template(tp) struct tcpcb *tp;
  * In any case the ack and sequence number of the transmitted
  * segment are as specified by the parameters.
  */
-void tcp_respond(tp, ti, m, ack, seq, flags) struct tcpcb *tp;
-register struct tcpiphdr *ti;
-register struct mbuf *m;
-tcp_seq ack, seq;
-int flags;
+void tcp_respond(struct tcpcb *tp, struct tcpiphdr *ti, struct mbuf *m,
+                 tcp_seq ack, tcp_seq seq, int flags)
 {
     register int tlen;
     int win = 0;
@@ -117,7 +114,7 @@ int flags;
 
     if (tp)
         win = sbspace(&tp->t_socket->so_rcv);
-    if (m == 0) {
+    if (m == NULL) {
         if ((m = m_get()) == NULL)
             return;
 #ifdef TCP_COMPAT_42
@@ -153,7 +150,7 @@ int flags;
     tlen += sizeof(struct tcpiphdr);
     m->m_len = tlen;
 
-    ti->ti_mbuf = 0;
+    ti->ti_mbuf = NULL;
     ti->ti_x1 = 0;
     ti->ti_seq = htonl(seq);
     ti->ti_ack = htonl(ack);
@@ -182,7 +179,7 @@ int flags;
  * empty reassembly queue and hooking it to the argument
  * protocol control block.
  */
-struct tcpcb *tcp_newtcpcb(so) struct socket *so;
+struct tcpcb *tcp_newtcpcb(struct socket *so)
 {
     register struct tcpcb *tp;
 
@@ -255,7 +252,7 @@ struct tcpcb *tcp_drop(struct tcpcb *tp, int err)
  *	discard internet protocol block
  *	wake up any sleepers
  */
-struct tcpcb *tcp_close(tp) register struct tcpcb *tp;
+struct tcpcb *tcp_close(struct tcpcb *tp)
 {
     register struct tcpiphdr *t;
     struct socket *so = tp->t_socket;
@@ -278,7 +275,7 @@ struct tcpcb *tcp_close(tp) register struct tcpcb *tp;
      */
     /*	free(tp, M_PCB);  */
     free(tp);
-    so->so_tcpcb = 0;
+    so->so_tcpcb = NULL;
     soisfdisconnected(so);
     /* clobber input socket cache if we're closing the cached connection */
     if (so == tcp_last_so)
@@ -327,7 +324,7 @@ void tcp_quench(i, errno)
  * for peer to send FIN or not respond to keep-alives, etc.
  * We can let the user exit from the close as soon as the FIN is acked.
  */
-void tcp_sockclosed(tp) struct tcpcb *tp;
+void tcp_sockclosed(struct tcpcb *tp)
 {
     DEBUG_CALL("tcp_sockclosed");
     DEBUG_ARG("tp = %lx", (long)tp);
@@ -366,7 +363,7 @@ void tcp_sockclosed(tp) struct tcpcb *tp;
  * nonblocking.  Connect returns after the SYN is sent, and does
  * not wait for ACK+SYN.
  */
-int tcp_fconnect(so) struct socket *so;
+int tcp_fconnect(struct socket *so)
 {
     int ret = 0;
 
@@ -428,7 +425,7 @@ int tcp_fconnect(so) struct socket *so;
  * the time it gets to accept(), so... We simply accept
  * here and SYN the local-host.
  */
-void tcp_connect(inso) struct socket *inso;
+void tcp_connect(struct socket *inso)
 {
     struct socket *so;
     struct sockaddr_in addr;
@@ -515,7 +512,7 @@ void tcp_connect(inso) struct socket *inso;
 /*
  * Attach a TCPCB to a socket.
  */
-int tcp_attach(so) struct socket *so;
+int tcp_attach(struct socket *so)
 {
     if ((so->so_tcpcb = tcp_newtcpcb(so)) == NULL)
         return -1;
@@ -547,12 +544,12 @@ static const struct tos_t tcptos[] = {
 #ifdef CONFIG_QEMU
 static
 #endif
-    struct emu_t *tcpemu = 0;
+    struct emu_t *tcpemu = NULL;
 
 /*
  * Return TOS according to the above table
  */
-u_int8_t tcp_tos(so) struct socket *so;
+u_int8_t tcp_tos(struct socket *so)
 {
     int i = 0;
     struct emu_t *emup;
@@ -606,8 +603,7 @@ int do_echo = -1;
  *
  * NOTE: if you return 0 you MUST m_free() the mbuf!
  */
-int tcp_emu(so, m) struct socket *so;
-struct mbuf *m;
+int tcp_emu(struct socket *so, struct mbuf *m)
 {
     u_int n1, n2, n3, n4, n5, n6;
     char buff[257];
@@ -961,7 +957,7 @@ do_prompt:
 		}
 #endif
     case EMU_FTP: /* ftp */
-        *(m->m_data + m->m_len) = 0; /* NULL terminate for strstr */
+        *(m->m_data + m->m_len) = 0; /* NUL terminate for strstr */
         if ((bptr = (char *)strstr(m->m_data, "ORT")) != NULL) {
             /*
              * Need to emulate the PORT command
@@ -1235,7 +1231,7 @@ do_prompt:
  * Return 0 if this connections is to be closed, 1 otherwise,
  * return 2 if this is a command-line connection
  */
-int tcp_ctl(so) struct socket *so;
+int tcp_ctl(struct socket *so)
 {
     struct sbuf *sb = &so->so_snd;
     int command;

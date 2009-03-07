@@ -69,7 +69,7 @@ redir_x(inaddr, start_port, display, screen)
 /*
  * Get our IP address and put it in our_addr
  */
-void getouraddr()
+void getouraddr(void)
 {
     char buff[256];
     struct hostent *he = NULL;
@@ -87,7 +87,7 @@ struct quehead {
     struct quehead *qh_rlink;
 };
 
-inline void insque(a, b) void *a, *b;
+inline void insque(void *a, void *b)
 {
     register struct quehead *element = (struct quehead *)a;
     register struct quehead *head = (struct quehead *)b;
@@ -98,7 +98,7 @@ inline void insque(a, b) void *a, *b;
         (struct quehead *)element;
 }
 
-inline void remque(a) void *a;
+inline void remque(void *a)
 {
     register struct quehead *element = (struct quehead *)a;
     ((struct quehead *)(element->qh_link))->qh_rlink = element->qh_rlink;
@@ -110,11 +110,8 @@ inline void remque(a) void *a;
 /* #endif */
 
 
-int add_exec(ex_ptr, do_pty, exec, addr, port) struct ex_list **ex_ptr;
-int do_pty;
-char *exec;
-int addr;
-int port;
+int add_exec(struct ex_list **ex_ptr, int do_pty, char *exec, int addr,
+             int port)
 {
     struct ex_list *tmp_ptr;
 
@@ -347,7 +344,7 @@ int fork_exec(struct socket *so, const char *ex, int do_pty)
                 argv[i++] = strdup(curarg);
             } while (c);
 
-        argv[i] = 0;
+        argv[i] = NULL;
         execvp(argv[0], (char **)argv);
 
         /* Ooops, failed, let's tell the user why */
@@ -389,9 +386,9 @@ int fork_exec(struct socket *so, const char *ex, int do_pty)
         fd_nonblock(so->s);
 
         /* Append the telnet options now */
-        if (so->so_m != 0 && do_pty == 1) {
+        if (so->so_m != NULL && do_pty == 1) {
             sbappend(so, so->so_m);
-            so->so_m = 0;
+            so->so_m = NULL;
         }
 
         return 1;
@@ -745,7 +742,7 @@ sprintf_len(char *string, const char *format, ...)
 
 #endif
 
-void u_sleep(usec) int usec;
+void u_sleep(int usec)
 {
     struct timeval t;
     fd_set fdset;
@@ -762,7 +759,7 @@ void u_sleep(usec) int usec;
  * Set fd blocking and non-blocking
  */
 
-void fd_nonblock(fd) int fd;
+void fd_nonblock(int fd)
 {
 #ifdef FIONBIO
     int opt = 1;
@@ -777,7 +774,7 @@ void fd_nonblock(fd) int fd;
 #endif
 }
 
-void fd_block(fd) int fd;
+void fd_block(int fd)
 {
 #ifdef FIONBIO
     int opt = 0;
