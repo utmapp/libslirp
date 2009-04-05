@@ -761,7 +761,11 @@ void u_sleep(int usec)
 void fd_nonblock(int fd)
 {
 #ifdef FIONBIO
+#ifdef _WIN32
+    long opt = 1;
+#else
     int opt = 1;
+#endif
 
     ioctlsocket(fd, FIONBIO, &opt);
 #else
