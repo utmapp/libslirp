@@ -43,7 +43,7 @@ static struct tcpcb *tcp_timers(register struct tcpcb *tp, int timer);
 /*
  * Fast timeout routine for processing delayed acks
  */
-void tcp_fasttimo()
+void tcp_fasttimo(void)
 {
     register struct socket *so;
     register struct tcpcb *tp;
@@ -67,7 +67,7 @@ void tcp_fasttimo()
  * Updates the timers in all active tcb's and
  * causes finite state machine actions if timers expire.
  */
-void tcp_slowtimo()
+void tcp_slowtimo(void)
 {
     register struct socket *ip, *ipnxt;
     register struct tcpcb *tp;
@@ -109,7 +109,7 @@ void tcp_slowtimo()
 /*
  * Cancel all timers for TCP tp.
  */
-void tcp_canceltimers(tp) struct tcpcb *tp;
+void tcp_canceltimers(struct tcpcb *tp)
 {
     register int i;
 
