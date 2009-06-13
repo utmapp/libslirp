@@ -478,7 +478,12 @@ void sorecvfrom(struct socket *so)
         udp_detach(so);
     } else { /* A "normal" UDP packet */
         struct mbuf *m;
-        int len, n;
+        int len;
+#ifdef _WIN32
+        unsigned long n;
+#else
+        int n;
+#endif
 
         if (!(m = m_get()))
             return;
