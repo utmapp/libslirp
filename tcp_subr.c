@@ -482,6 +482,7 @@ void tcp_connect(struct socket *inso)
         /* if it's not FACCEPTONCE, it's already NOFDREF */
     }
     so->s = s;
+    so->so_state |= SS_INCOMING;
 
     so->so_iptos = tcp_tos(so);
     tp = sototcpcb(so);
