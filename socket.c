@@ -593,16 +593,17 @@ int sosendto(struct socket *so, struct mbuf *m)
 }
 
 /*
- * XXX This should really be tcp_listen
+ * Listen for incoming TCP connections
  */
-struct socket *solisten(u_int port, u_int32_t laddr, u_int lport, int flags)
+struct socket *tcp_listen(u_int32_t haddr, u_int hport, u_int32_t laddr,
+                          u_int lport, int flags)
 {
     struct sockaddr_in addr;
     struct socket *so;
     int s, opt = 1;
     socklen_t addrlen = sizeof(addr);
 
-    DEBUG_CALL("solisten");
+    DEBUG_CALL("tcp_listen");
     DEBUG_ARG("port = %d", port);
     DEBUG_ARG("laddr = %x", laddr);
     DEBUG_ARG("lport = %d", lport);
@@ -631,8 +632,8 @@ struct socket *solisten(u_int port, u_int32_t laddr, u_int lport, int flags)
     so->so_laddr.s_addr = laddr; /* Ditto */
 
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = port;
+    addr.sin_addr.s_addr = haddr;
+    addr.sin_port = hport;
 
     if (((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) ||
         (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int)) <
