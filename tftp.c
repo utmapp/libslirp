@@ -168,9 +168,8 @@ static int tftp_send_oack(struct tftp_session *spt, const char *key,
     return 0;
 }
 
-
-static int tftp_send_error(struct tftp_session *spt, u_int16_t errorcode,
-                           const char *msg, struct tftp_t *recv_tp)
+static void tftp_send_error(struct tftp_session *spt, u_int16_t errorcode,
+                            const char *msg, struct tftp_t *recv_tp)
 {
     struct sockaddr_in saddr, daddr;
     struct mbuf *m;
@@ -180,7 +179,7 @@ static int tftp_send_error(struct tftp_session *spt, u_int16_t errorcode,
     m = m_get();
 
     if (!m) {
-        return -1;
+        goto out;
     }
 
     memset(m->m_data, 0, m->m_size);
@@ -206,9 +205,8 @@ static int tftp_send_error(struct tftp_session *spt, u_int16_t errorcode,
 
     udp_output2(NULL, m, &saddr, &daddr, IPTOS_LOWDELAY);
 
+out:
     tftp_session_terminate(spt);
-
-    return 0;
 }
 
 static int tftp_send_data(struct tftp_session *spt, u_int16_t block_nr,
