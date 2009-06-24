@@ -161,16 +161,6 @@ void ip_input(struct mbuf *m)
     }
 
     /*
-     * Process options and, if not destined for us,
-     * ship it on.  ip_dooptions returns 1 when an
-     * error was detected (causing an icmp message
-     * to be sent and the original packet to be freed).
-     */
-    /* We do no IP options */
-    /*	if (hlen > sizeof (struct ip) && ip_dooptions(m))
-     *		goto next;
-     */
-    /*
      * If offset or IP_MF are set, must reassemble.
      * Otherwise, nothing need be done.
      * (We could look in the reassembly queue to see
@@ -391,9 +381,6 @@ insert:
         q = (struct ipasfrag *)(m->m_ext + delta);
     }
 
-    /* DEBUG_ARG("ip = %lx", (long)ip);
-     * ip=(struct ipasfrag *)m->m_data; */
-
     ip = fragtoip(q);
     ip->ip_len = next;
     ip->ip_tos &= ~1;
@@ -495,7 +482,6 @@ int ip_dooptions(m) struct mbuf *m;
     register u_char *cp;
     register struct ip_timestamp *ipt;
     register struct in_ifaddr *ia;
-    /*	int opt, optlen, cnt, off, code, type = ICMP_PARAMPROB, forward = 0; */
     int opt, optlen, cnt, off, code, type, forward = 0;
     struct in_addr *sin, dst;
     typedef u_int32_t n_time;
@@ -668,11 +654,7 @@ int ip_dooptions(m) struct mbuf *m;
 }
 }
 return (0);
-bad :
-    /* ip->ip_len -= ip->ip_hl << 2;   XXX icmp_error adds in hdr length */
-
-    /* Not yet */
-    icmp_error(m, type, code, 0, 0);
+bad : icmp_error(m, type, code, 0, 0);
 
 STAT(ipstat.ips_badoptions++);
 return (1);
