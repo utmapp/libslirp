@@ -275,6 +275,10 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
     int nfds;
     int tmp_time;
 
+    if (!link_up) {
+        return;
+    }
+
     /* fail safe */
     global_readfds = NULL;
     global_writefds = NULL;
@@ -285,100 +289,98 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
      * First, TCP sockets
      */
     do_slowtimo = 0;
-    if (link_up) {
+
+    /*
+     * *_slowtimo needs calling if there are IP fragments
+     * in the fragment queue, or there are TCP connections active
+     */
+    do_slowtimo = ((tcb.so_next != &tcb) || (&ipq.ip_link != ipq.ip_link.next));
+
+    for (so = tcb.so_next; so != &tcb; so = so_next) {
+        so_next = so->so_next;
+
         /*
-         * *_slowtimo needs calling if there are IP fragments
-         * in the fragment queue, or there are TCP connections active
+         * See if we need a tcp_fasttimo
          */
-        do_slowtimo =
-            ((tcb.so_next != &tcb) || (&ipq.ip_link != ipq.ip_link.next));
+        if (time_fasttimo == 0 && so->so_tcpcb->t_flags & TF_DELACK)
+            time_fasttimo = curtime; /* Flag when we want a fasttimo */
 
-        for (so = tcb.so_next; so != &tcb; so = so_next) {
-            so_next = so->so_next;
+        /*
+         * NOFDREF can include still connecting to local-host,
+         * newly socreated() sockets etc. Don't want to select these.
+         */
+        if (so->so_state & SS_NOFDREF || so->s == -1)
+            continue;
 
-            /*
-             * See if we need a tcp_fasttimo
-             */
-            if (time_fasttimo == 0 && so->so_tcpcb->t_flags & TF_DELACK)
-                time_fasttimo = curtime; /* Flag when we want a fasttimo */
-
-            /*
-             * NOFDREF can include still connecting to local-host,
-             * newly socreated() sockets etc. Don't want to select these.
-             */
-            if (so->so_state & SS_NOFDREF || so->s == -1)
-                continue;
-
-            /*
-             * Set for reading sockets which are accepting
-             */
-            if (so->so_state & SS_FACCEPTCONN) {
-                FD_SET(so->s, readfds);
-                UPD_NFDS(so->s);
-                continue;
-            }
-
-            /*
-             * Set for writing sockets which are connecting
-             */
-            if (so->so_state & SS_ISFCONNECTING) {
-                FD_SET(so->s, writefds);
-                UPD_NFDS(so->s);
-                continue;
-            }
-
-            /*
-             * Set for writing if we are connected, can send more, and
-             * we have something to send
-             */
-            if (CONN_CANFSEND(so) && so->so_rcv.sb_cc) {
-                FD_SET(so->s, writefds);
-                UPD_NFDS(so->s);
-            }
-
-            /*
-             * Set for reading (and urgent data) if we are connected, can
-             * receive more, and we have room for it XXX /2 ?
-             */
-            if (CONN_CANFRCV(so) &&
-                (so->so_snd.sb_cc < (so->so_snd.sb_datalen / 2))) {
-                FD_SET(so->s, readfds);
-                FD_SET(so->s, xfds);
-                UPD_NFDS(so->s);
-            }
+        /*
+         * Set for reading sockets which are accepting
+         */
+        if (so->so_state & SS_FACCEPTCONN) {
+            FD_SET(so->s, readfds);
+            UPD_NFDS(so->s);
+            continue;
         }
 
         /*
-         * UDP sockets
+         * Set for writing sockets which are connecting
          */
-        for (so = udb.so_next; so != &udb; so = so_next) {
-            so_next = so->so_next;
+        if (so->so_state & SS_ISFCONNECTING) {
+            FD_SET(so->s, writefds);
+            UPD_NFDS(so->s);
+            continue;
+        }
 
-            /*
-             * See if it's timed out
-             */
-            if (so->so_expire) {
-                if (so->so_expire <= curtime) {
-                    udp_detach(so);
-                    continue;
-                } else
-                    do_slowtimo = 1; /* Let socket expire */
-            }
+        /*
+         * Set for writing if we are connected, can send more, and
+         * we have something to send
+         */
+        if (CONN_CANFSEND(so) && so->so_rcv.sb_cc) {
+            FD_SET(so->s, writefds);
+            UPD_NFDS(so->s);
+        }
 
-            /*
-             * When UDP packets are received from over the
-             * link, they're sendto()'d straight away, so
-             * no need for setting for writing
-             * Limit the number of packets queued by this session
-             * to 4.  Note that even though we try and limit this
-             * to 4 packets, the session could have more queued
-             * if the packets needed to be fragmented
-             * (XXX <= 4 ?)
-             */
-            if ((so->so_state & SS_ISFCONNECTED) && so->so_queued <= 4) {
-                FD_SET(so->s, readfds);
-                UPD_NFDS(so->s);
-            }
+        /*
+         * Set for reading (and urgent data) if we are connected, can
+         * receive more, and we have room for it XXX /2 ?
+         */
+        if (CONN_CANFRCV(so) &&
+            (so->so_snd.sb_cc < (so->so_snd.sb_datalen / 2))) {
+            FD_SET(so->s, readfds);
+            FD_SET(so->s, xfds);
+            UPD_NFDS(so->s);
+        }
+    }
+
+    /*
+     * UDP sockets
+     */
+    for (so = udb.so_next; so != &udb; so = so_next) {
+        so_next = so->so_next;
+
+        /*
+         * See if it's timed out
+         */
+        if (so->so_expire) {
+            if (so->so_expire <= curtime) {
+                udp_detach(so);
+                continue;
+            } else
+                do_slowtimo = 1; /* Let socket expire */
+        }
+
+        /*
+         * When UDP packets are received from over the
+         * link, they're sendto()'d straight away, so
+         * no need for setting for writing
+         * Limit the number of packets queued by this session
+         * to 4.  Note that even though we try and limit this
+         * to 4 packets, the session could have more queued
+         * if the packets needed to be fragmented
+         * (XXX <= 4 ?)
+         */
+        if ((so->so_state & SS_ISFCONNECTED) && so->so_queued <= 4) {
+            FD_SET(so->s, readfds);
+            UPD_NFDS(so->s);
         }
     }
 
@@ -418,10 +420,15 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
     *pnfds = nfds;
 }
 
-void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds)
+void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
+                       int select_error)
 {
     struct socket *so, *so_next;
     int ret;
+
+    if (!link_up) {
+        return;
+    }
 
     global_readfds = readfds;
     global_writefds = writefds;
@@ -433,22 +440,20 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds)
     /*
      * See if anything has timed out
      */
-    if (link_up) {
-        if (time_fasttimo && ((curtime - time_fasttimo) >= 2)) {
-            tcp_fasttimo();
-            time_fasttimo = 0;
-        }
-        if (do_slowtimo && ((curtime - last_slowtimo) >= 499)) {
-            ip_slowtimo();
-            tcp_slowtimo();
-            last_slowtimo = curtime;
-        }
+    if (time_fasttimo && ((curtime - time_fasttimo) >= 2)) {
+        tcp_fasttimo();
+        time_fasttimo = 0;
+    }
+    if (do_slowtimo && ((curtime - last_slowtimo) >= 499)) {
+        ip_slowtimo();
+        tcp_slowtimo();
+        last_slowtimo = curtime;
     }
 
     /*
      * Check sockets
      */
-    if (link_up) {
+    if (!select_error) {
         /*
          * Check TCP sockets
          */
@@ -580,7 +585,7 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds)
     /*
      * See if we can start outputting
      */
-    if (if_queued && link_up)
+    if (if_queued)
         if_start();
 
     /* clear global file descriptor sets.
