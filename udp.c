@@ -660,7 +660,8 @@ struct socket *udp_listen(u_int32_t haddr, u_int hport, u_int32_t laddr,
     if (flags != SS_FACCEPTONCE)
         so->so_expire = 0;
 
-    so->so_state = SS_ISFCONNECTED;
+    so->so_state &= SS_PERSISTENT_MASK;
+    so->so_state |= SS_ISFCONNECTED;
 
     return so;
 }

@@ -1036,7 +1036,8 @@ findso:
                 soisfconnected(so);
                 so->so_state &= ~SS_CTL; /* success XXX */
             } else if (ret == 2) {
-                so->so_state = SS_NOFDREF; /* CTL_CMD */
+                so->so_state &= SS_PERSISTENT_MASK;
+                so->so_state |= SS_NOFDREF; /* CTL_CMD */
             } else {
                 needoutput = 1;
                 tp->t_state = TCPS_FIN_WAIT_1;
