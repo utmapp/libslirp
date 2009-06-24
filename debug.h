@@ -5,18 +5,18 @@
  * terms and conditions of the copyright.
  */
 
-#define PRN_STDERR 1
-#define PRN_SPRINTF 2
+//#define DEBUG 1
 
-extern FILE *dfd;
-extern int slirp_debug;
+#ifdef DEBUG
 
 #define DBG_CALL 0x1
 #define DBG_MISC 0x2
 #define DBG_ERROR 0x4
-#define DEBUG_DEFAULT DBG_CALL | DBG_MISC | DBG_ERROR
 
-#ifdef DEBUG
+#define dfd stderr
+
+extern int slirp_debug;
+
 #define DEBUG_CALL(x)               \
     if (slirp_debug & DBG_CALL) {   \
         fprintf(dfd, "%s...\n", x); \
@@ -45,7 +45,6 @@ extern int slirp_debug;
         fflush(dfd);               \
     }
 
-
 #else
 
 #define DEBUG_CALL(x)
@@ -55,5 +54,3 @@ extern int slirp_debug;
 #define DEBUG_ERROR(x)
 
 #endif
-
-void debug_init _P((char *, int));

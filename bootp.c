@@ -41,11 +41,13 @@ char *bootp_filename;
 static const uint8_t rfc1533_cookie[] = { RFC1533_COOKIE };
 
 #ifdef DEBUG
-#define dprintf(fmt, ...)                 \
-    if (slirp_debug & DBG_CALL) {         \
-        fprintf(dfd, fmt, ##__VA_ARGS__); \
-        fflush(dfd);                      \
-    }
+#define dprintf(fmt, ...)                     \
+    do                                        \
+        if (slirp_debug & DBG_CALL) {         \
+            fprintf(dfd, fmt, ##__VA_ARGS__); \
+            fflush(dfd);                      \
+        }                                     \
+    while (0)
 #else
 #define dprintf(fmt, ...)
 #endif
