@@ -7,12 +7,6 @@
 
 #include <slirp.h>
 
-int if_queued = 0; /* Number of packets queued so far */
-
-struct mbuf if_fastq; /* fast queue (for interactive data) */
-struct mbuf if_batchq; /* queue for non-interactive data */
-struct mbuf *next_m; /* Pointer to next mbuf to output */
-
 #define ifs_init(ifm) ((ifm)->ifs_next = (ifm)->ifs_prev = (ifm))
 
 static void ifs_insque(struct mbuf *ifm, struct mbuf *ifmhead)
@@ -29,11 +23,11 @@ static void ifs_remque(struct mbuf *ifm)
     ifm->ifs_next->ifs_prev = ifm->ifs_prev;
 }
 
-void if_init(void)
+void if_init(Slirp *slirp)
 {
-    if_fastq.ifq_next = if_fastq.ifq_prev = &if_fastq;
-    if_batchq.ifq_next = if_batchq.ifq_prev = &if_batchq;
-    next_m = &if_batchq;
+    slirp->if_fastq.ifq_next = slirp->if_fastq.ifq_prev = &slirp->if_fastq;
+    slirp->if_batchq.ifq_next = slirp->if_batchq.ifq_prev = &slirp->if_batchq;
+    slirp->next_m = &slirp->if_batchq;
 }
 
 /*
@@ -51,6 +45,7 @@ void if_init(void)
  */
 void if_output(struct socket *so, struct mbuf *ifm)
 {
+    Slirp *slirp = ifm->slirp;
     struct mbuf *ifq;
     int on_fastq = 1;
 
@@ -76,7 +71,8 @@ void if_output(struct socket *so, struct mbuf *ifm)
      * order)
      * XXX add cache here?
      */
-    for (ifq = if_batchq.ifq_prev; ifq != &if_batchq; ifq = ifq->ifq_prev) {
+    for (ifq = slirp->if_batchq.ifq_prev; ifq != &slirp->if_batchq;
+         ifq = ifq->ifq_prev) {
         if (so == ifq->ifq_so) {
             /* A match! */
             ifm->ifq_so = so;
@@ -87,7 +83,7 @@ void if_output(struct socket *so, struct mbuf *ifm)
 
     /* No match, check which queue to put it on */
     if (so && (so->so_iptos & IPTOS_LOWDELAY)) {
-        ifq = if_fastq.ifq_prev;
+        ifq = slirp->if_fastq.ifq_prev;
         on_fastq = 1;
         /*
          * Check if this packet is a part of the last
@@ -99,7 +95,7 @@ void if_output(struct socket *so, struct mbuf *ifm)
             goto diddit;
         }
     } else
-        ifq = if_batchq.ifq_prev;
+        ifq = slirp->if_batchq.ifq_prev;
 
     /* Create a new doubly linked list for this session */
     ifm->ifq_so = so;
@@ -107,7 +103,7 @@ void if_output(struct socket *so, struct mbuf *ifm)
     insque(ifm, ifq);
 
 diddit:
-    ++if_queued;
+    slirp->if_queued++;
 
     if (so) {
         /* Update *_queued */
@@ -126,7 +122,7 @@ diddit:
             remque(ifm->ifs_next);
 
             /* ...And insert in the new.  That'll teach ya! */
-            insque(ifm->ifs_next, &if_batchq);
+            insque(ifm->ifs_next, &slirp->if_batchq);
         }
     }
 
@@ -134,7 +130,7 @@ diddit:
     /*
      * This prevents us from malloc()ing too many mbufs
      */
-    if_start();
+    if_start(ifm->slirp);
 #endif
 }
 
@@ -150,13 +146,13 @@ diddit:
  * from the second session, then one packet from the third, then back
  * to the first, etc. etc.
  */
-void if_start(void)
+void if_start(Slirp *slirp)
 {
     struct mbuf *ifm, *ifqt;
 
     DEBUG_CALL("if_start");
 
-    if (if_queued == 0)
+    if (slirp->if_queued == 0)
         return; /* Nothing to do */
 
 again:
@@ -168,22 +164,22 @@ again:
      * See which queue to get next packet from
      * If there's something in the fastq, select it immediately
      */
-    if (if_fastq.ifq_next != &if_fastq) {
-        ifm = if_fastq.ifq_next;
+    if (slirp->if_fastq.ifq_next != &slirp->if_fastq) {
+        ifm = slirp->if_fastq.ifq_next;
     } else {
         /* Nothing on fastq, see if next_m is valid */
-        if (next_m != &if_batchq)
-            ifm = next_m;
+        if (slirp->next_m != &slirp->if_batchq)
+            ifm = slirp->next_m;
         else
-            ifm = if_batchq.ifq_next;
+            ifm = slirp->if_batchq.ifq_next;
 
         /* Set which packet to send on next iteration */
-        next_m = ifm->ifq_next;
+        slirp->next_m = ifm->ifq_next;
     }
     /* Remove it from the queue */
     ifqt = ifm->ifq_prev;
     remque(ifm);
-    --if_queued;
+    slirp->if_queued--;
 
     /* If there are more packets for this session, re-queue them */
     if (ifm->ifs_next != /* ifm->ifs_prev != */ ifm) {
@@ -199,10 +195,10 @@ again:
     }
 
     /* Encapsulate the packet for sending */
-    if_encap((uint8_t *)ifm->m_data, ifm->m_len);
+    if_encap(slirp, (uint8_t *)ifm->m_data, ifm->m_len);
 
     m_free(ifm);
 
-    if (if_queued)
+    if (slirp->if_queued)
         goto again;
 }

@@ -47,10 +47,11 @@
 /*
  * Tcp initialization
  */
-void tcp_init(void)
+void tcp_init(Slirp *slirp)
 {
-    tcp_iss = 1; /* wrong */
-    tcb.so_next = tcb.so_prev = &tcb;
+    slirp->tcp_iss = 1; /* wrong */
+    slirp->tcb.so_next = slirp->tcb.so_prev = &slirp->tcb;
+    slirp->tcp_last_so = &slirp->tcb;
 }
 
 /*
@@ -113,7 +114,7 @@ void tcp_respond(struct tcpcb *tp, struct tcpiphdr *ti, struct mbuf *m,
     if (tp)
         win = sbspace(&tp->t_socket->so_rcv);
     if (m == NULL) {
-        if ((m = m_get()) == NULL)
+        if ((m = m_get(tp->t_socket->slirp)) == NULL)
             return;
         tlen = 0;
         m->m_data += IF_MAXLINKHDR;
@@ -238,6 +239,7 @@ struct tcpcb *tcp_close(struct tcpcb *tp)
 {
     register struct tcpiphdr *t;
     struct socket *so = tp->t_socket;
+    Slirp *slirp = so->slirp;
     register struct mbuf *m;
 
     DEBUG_CALL("tcp_close");
@@ -254,8 +256,8 @@ struct tcpcb *tcp_close(struct tcpcb *tp)
     free(tp);
     so->so_tcpcb = NULL;
     /* clobber input socket cache if we're closing the cached connection */
-    if (so == tcp_last_so)
-        tcp_last_so = &tcb;
+    if (so == slirp->tcp_last_so)
+        slirp->tcp_last_so = &slirp->tcb;
     closesocket(so->s);
     sbfree(&so->so_rcv);
     sbfree(&so->so_snd);
@@ -315,6 +317,7 @@ void tcp_sockclosed(struct tcpcb *tp)
  */
 int tcp_fconnect(struct socket *so)
 {
+    Slirp *slirp = so->slirp;
     int ret = 0;
 
     DEBUG_CALL("tcp_fconnect");
@@ -331,10 +334,10 @@ int tcp_fconnect(struct socket *so)
         setsockopt(s, SOL_SOCKET, SO_OOBINLINE, (char *)&opt, sizeof(opt));
 
         addr.sin_family = AF_INET;
-        if ((so->so_faddr.s_addr & vnetwork_mask.s_addr) ==
-            vnetwork_addr.s_addr) {
+        if ((so->so_faddr.s_addr & slirp->vnetwork_mask.s_addr) ==
+            slirp->vnetwork_addr.s_addr) {
             /* It's an alias */
-            if (so->so_faddr.s_addr == vnameserver_addr.s_addr) {
+            if (so->so_faddr.s_addr == slirp->vnameserver_addr.s_addr) {
                 addr.sin_addr = dns_addr;
             } else {
                 addr.sin_addr = loopback_addr;
@@ -374,6 +377,7 @@ int tcp_fconnect(struct socket *so)
  */
 void tcp_connect(struct socket *inso)
 {
+    Slirp *slirp = inso->slirp;
     struct socket *so;
     struct sockaddr_in addr;
     socklen_t addrlen = sizeof(struct sockaddr_in);
@@ -391,7 +395,7 @@ void tcp_connect(struct socket *inso)
         /* FACCEPTONCE already have a tcpcb */
         so = inso;
     } else {
-        if ((so = socreate()) == NULL) {
+        if ((so = socreate(slirp)) == NULL) {
             /* If it failed, get rid of the pending connection */
             closesocket(accept(inso->s, (struct sockaddr *)&addr, &addrlen));
             return;
@@ -422,7 +426,7 @@ void tcp_connect(struct socket *inso)
     so->so_faddr = addr.sin_addr;
     /* Translate connections from localhost to the real hostname */
     if (so->so_faddr.s_addr == 0 || so->so_faddr.s_addr == loopback_addr.s_addr)
-        so->so_faddr = vhost_addr;
+        so->so_faddr = slirp->vhost_addr;
 
     /* Close the accept() socket, set right state */
     if (inso->so_state & SS_FACCEPTONCE) {
@@ -442,8 +446,8 @@ void tcp_connect(struct socket *inso)
 
     tp->t_state = TCPS_SYN_SENT;
     tp->t_timer[TCPT_KEEP] = TCPTV_KEEP_INIT;
-    tp->iss = tcp_iss;
-    tcp_iss += TCP_ISSINCR / 2;
+    tp->iss = slirp->tcp_iss;
+    slirp->tcp_iss += TCP_ISSINCR / 2;
     tcp_sendseqinit(tp);
     tcp_output(tp);
 }
@@ -456,7 +460,7 @@ int tcp_attach(struct socket *so)
     if ((so->so_tcpcb = tcp_newtcpcb(so)) == NULL)
         return -1;
 
-    insque(so, &tcb);
+    insque(so, &so->slirp->tcb);
 
     return 0;
 }
@@ -537,6 +541,7 @@ u_int8_t tcp_tos(struct socket *so)
  */
 int tcp_emu(struct socket *so, struct mbuf *m)
 {
+    Slirp *slirp = so->slirp;
     u_int n1, n2, n3, n4, n5, n6;
     char buff[257];
     u_int32_t laddr;
@@ -570,7 +575,7 @@ int tcp_emu(struct socket *so, struct mbuf *m)
                     HTONS(n1);
                     HTONS(n2);
                     /* n2 is the one on our host */
-                    for (tmpso = tcb.so_next; tmpso != &tcb;
+                    for (tmpso = slirp->tcb.so_next; tmpso != &slirp->tcb;
                          tmpso = tmpso->so_next) {
                         if (tmpso->so_laddr.s_addr == so->so_laddr.s_addr &&
                             tmpso->so_lport == n2 &&
@@ -606,10 +611,10 @@ int tcp_emu(struct socket *so, struct mbuf *m)
             laddr = htonl((n1 << 24) | (n2 << 16) | (n3 << 8) | (n4));
             lport = htons((n5 << 8) | (n6));
 
-            if ((so = tcp_listen(INADDR_ANY, 0, laddr, lport,
-                                 SS_FACCEPTONCE)) == NULL)
+            if ((so = tcp_listen(slirp, INADDR_ANY, 0, laddr, lport,
+                                 SS_FACCEPTONCE)) == NULL) {
                 return 1;
-
+            }
             n6 = ntohs(so->so_fport);
 
             n5 = (n6 >> 8) & 0xff;
@@ -641,10 +646,10 @@ int tcp_emu(struct socket *so, struct mbuf *m)
             laddr = htonl((n1 << 24) | (n2 << 16) | (n3 << 8) | (n4));
             lport = htons((n5 << 8) | (n6));
 
-            if ((so = tcp_listen(INADDR_ANY, 0, laddr, lport,
-                                 SS_FACCEPTONCE)) == NULL)
+            if ((so = tcp_listen(slirp, INADDR_ANY, 0, laddr, lport,
+                                 SS_FACCEPTONCE)) == NULL) {
                 return 1;
-
+            }
             n6 = ntohs(so->so_fport);
 
             n5 = (n6 >> 8) & 0xff;
@@ -683,8 +688,8 @@ int tcp_emu(struct socket *so, struct mbuf *m)
             lport += m->m_data[i] - '0';
         }
         if (m->m_data[m->m_len - 1] == '\0' && lport != 0 &&
-            (so = tcp_listen(INADDR_ANY, 0, so->so_laddr.s_addr, htons(lport),
-                             SS_FACCEPTONCE)) != NULL)
+            (so = tcp_listen(slirp, INADDR_ANY, 0, so->so_laddr.s_addr,
+                             htons(lport), SS_FACCEPTONCE)) != NULL)
             m->m_len = snprintf(m->m_data, m->m_hdr.mh_size, "%d",
                                 ntohs(so->so_fport)) +
                        1;
@@ -700,10 +705,10 @@ int tcp_emu(struct socket *so, struct mbuf *m)
 
         /* The %256s is for the broken mIRC */
         if (sscanf(bptr, "DCC CHAT %256s %u %u", buff, &laddr, &lport) == 3) {
-            if ((so = tcp_listen(INADDR_ANY, 0, htonl(laddr), htons(lport),
-                                 SS_FACCEPTONCE)) == NULL)
+            if ((so = tcp_listen(slirp, INADDR_ANY, 0, htonl(laddr),
+                                 htons(lport), SS_FACCEPTONCE)) == NULL) {
                 return 1;
-
+            }
             m->m_len = bptr - m->m_data; /* Adjust length */
             m->m_len +=
                 snprintf(bptr, m->m_hdr.mh_size, "DCC CHAT chat %lu %u%c\n",
@@ -711,10 +716,10 @@ int tcp_emu(struct socket *so, struct mbuf *m)
                          ntohs(so->so_fport), 1);
         } else if (sscanf(bptr, "DCC SEND %256s %u %u %u", buff, &laddr, &lport,
                           &n1) == 4) {
-            if ((so = tcp_listen(INADDR_ANY, 0, htonl(laddr), htons(lport),
-                                 SS_FACCEPTONCE)) == NULL)
+            if ((so = tcp_listen(slirp, INADDR_ANY, 0, htonl(laddr),
+                                 htons(lport), SS_FACCEPTONCE)) == NULL) {
                 return 1;
-
+            }
             m->m_len = bptr - m->m_data; /* Adjust length */
             m->m_len +=
                 snprintf(bptr, m->m_hdr.mh_size, "DCC SEND %s %lu %u %u%c\n",
@@ -722,10 +727,10 @@ int tcp_emu(struct socket *so, struct mbuf *m)
                          ntohs(so->so_fport), n1, 1);
         } else if (sscanf(bptr, "DCC MOVE %256s %u %u %u", buff, &laddr, &lport,
                           &n1) == 4) {
-            if ((so = tcp_listen(INADDR_ANY, 0, htonl(laddr), htons(lport),
-                                 SS_FACCEPTONCE)) == NULL)
+            if ((so = tcp_listen(slirp, INADDR_ANY, 0, htonl(laddr),
+                                 htons(lport), SS_FACCEPTONCE)) == NULL) {
                 return 1;
-
+            }
             m->m_len = bptr - m->m_data; /* Adjust length */
             m->m_len +=
                 snprintf(bptr, m->m_hdr.mh_size, "DCC MOVE %s %lu %u %u%c\n",
@@ -837,8 +842,9 @@ int tcp_emu(struct socket *so, struct mbuf *m)
 
                 /* try to get udp port between 6970 - 7170 */
                 for (p = 6970; p < 7071; p++) {
-                    if (udp_listen(INADDR_ANY, htons(p), so->so_laddr.s_addr,
-                                   htons(lport), SS_FACCEPTONCE)) {
+                    if (udp_listen(slirp, INADDR_ANY, htons(p),
+                                   so->so_laddr.s_addr, htons(lport),
+                                   SS_FACCEPTONCE)) {
                         break;
                     }
                 }
@@ -871,6 +877,7 @@ int tcp_emu(struct socket *so, struct mbuf *m)
  */
 int tcp_ctl(struct socket *so)
 {
+    Slirp *slirp = so->slirp;
     struct sbuf *sb = &so->so_snd;
     struct ex_list *ex_ptr;
     int do_pty;
@@ -878,9 +885,9 @@ int tcp_ctl(struct socket *so)
     DEBUG_CALL("tcp_ctl");
     DEBUG_ARG("so = %lx", (long)so);
 
-    if (so->so_faddr.s_addr != vhost_addr.s_addr) {
+    if (so->so_faddr.s_addr != slirp->vhost_addr.s_addr) {
         /* Check if it's pty_exec */
-        for (ex_ptr = exec_list; ex_ptr; ex_ptr = ex_ptr->ex_next) {
+        for (ex_ptr = slirp->exec_list; ex_ptr; ex_ptr = ex_ptr->ex_next) {
             if (ex_ptr->ex_fport == so->so_fport &&
                 so->so_faddr.s_addr == ex_ptr->ex_addr.s_addr) {
                 if (ex_ptr->ex_pty == 3) {

@@ -17,8 +17,6 @@
 
 #include <slirp.h>
 
-static int mbuf_alloced;
-struct mbuf m_freelist, m_usedlist;
 #define MBUF_THRESH 30
 
 /*
@@ -27,10 +25,10 @@ struct mbuf m_freelist, m_usedlist;
  */
 #define SLIRP_MSIZE (IF_MTU + IF_MAXLINKHDR + sizeof(struct m_hdr) + 6)
 
-void m_init(void)
+void m_init(Slirp *slirp)
 {
-    m_freelist.m_next = m_freelist.m_prev = &m_freelist;
-    m_usedlist.m_next = m_usedlist.m_prev = &m_usedlist;
+    slirp->m_freelist.m_next = slirp->m_freelist.m_prev = &slirp->m_freelist;
+    slirp->m_usedlist.m_next = slirp->m_usedlist.m_prev = &slirp->m_usedlist;
 }
 
 /*
@@ -41,27 +39,28 @@ void m_init(void)
  * free old mbufs, we mark all mbufs above mbuf_thresh as M_DOFREE,
  * which tells m_free to actually free() it
  */
-struct mbuf *m_get(void)
+struct mbuf *m_get(Slirp *slirp)
 {
     register struct mbuf *m;
     int flags = 0;
 
     DEBUG_CALL("m_get");
 
-    if (m_freelist.m_next == &m_freelist) {
+    if (slirp->m_freelist.m_next == &slirp->m_freelist) {
         m = (struct mbuf *)malloc(SLIRP_MSIZE);
         if (m == NULL)
             goto end_error;
-        mbuf_alloced++;
-        if (mbuf_alloced > MBUF_THRESH)
+        slirp->mbuf_alloced++;
+        if (slirp->mbuf_alloced > MBUF_THRESH)
             flags = M_DOFREE;
+        m->slirp = slirp;
     } else {
-        m = m_freelist.m_next;
+        m = slirp->m_freelist.m_next;
         remque(m);
     }
 
     /* Insert it in the used list */
-    insque(m, &m_usedlist);
+    insque(m, &slirp->m_usedlist);
     m->m_flags = (flags | M_USEDLIST);
 
     /* Initialise it */
@@ -94,9 +93,9 @@ void m_free(struct mbuf *m)
          */
         if (m->m_flags & M_DOFREE) {
             free(m);
-            mbuf_alloced--;
+            m->slirp->mbuf_alloced--;
         } else if ((m->m_flags & M_FREELIST) == 0) {
-            insque(m, &m_freelist);
+            insque(m, &m->slirp->m_freelist);
             m->m_flags = M_FREELIST; /* Clobber other flags */
         }
     } /* if(m) */
@@ -185,7 +184,7 @@ int m_copy(struct mbuf *n, struct mbuf *m, int off, int len)
  * XXX This is a kludge, I should eliminate the need for it
  * Fortunately, it's not used often
  */
-struct mbuf *dtom(void *dat)
+struct mbuf *dtom(Slirp *slirp, void *dat)
 {
     struct mbuf *m;
 
@@ -193,7 +192,7 @@ struct mbuf *dtom(void *dat)
     DEBUG_ARG("dat = %lx", (long)dat);
 
     /* bug corrected for M_EXT buffers */
-    for (m = m_usedlist.m_next; m != &m_usedlist; m = m->m_next) {
+    for (m = slirp->m_usedlist.m_next; m != &slirp->m_usedlist; m = m->m_next) {
         if (m->m_flags & M_EXT) {
             if ((char *)dat >= m->m_ext && (char *)dat < (m->m_ext + m->m_size))
                 return m;

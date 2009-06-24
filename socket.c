@@ -36,7 +36,7 @@ struct socket *solookup(struct socket *head, struct in_addr laddr, u_int lport,
  * It is the responsibility of the caller to
  * insque() it into the correct linked-list
  */
-struct socket *socreate(void)
+struct socket *socreate(Slirp *slirp)
 {
     struct socket *so;
 
@@ -45,6 +45,7 @@ struct socket *socreate(void)
         memset(so, 0, sizeof(struct socket));
         so->so_state = SS_NOFDREF;
         so->s = -1;
+        so->slirp = slirp;
     }
     return (so);
 }
@@ -54,15 +55,17 @@ struct socket *socreate(void)
  */
 void sofree(struct socket *so)
 {
+    Slirp *slirp = so->slirp;
+
     if (so->so_emu == EMU_RSH && so->extra) {
         sofree(so->extra);
         so->extra = NULL;
     }
-    if (so == tcp_last_so)
-        tcp_last_so = &tcb;
-    else if (so == udp_last_so)
-        udp_last_so = &udb;
-
+    if (so == slirp->tcp_last_so) {
+        slirp->tcp_last_so = &slirp->tcb;
+    } else if (so == slirp->udp_last_so) {
+        slirp->udp_last_so = &slirp->udb;
+    }
     m_free(so->so_m);
 
     if (so->so_next && so->so_prev)
@@ -477,8 +480,10 @@ void sorecvfrom(struct socket *so)
         int n;
 #endif
 
-        if (!(m = m_get()))
+        m = m_get(so->slirp);
+        if (!m) {
             return;
+        }
         m->m_data += IF_MAXLINKHDR;
 
         /*
@@ -539,6 +544,7 @@ void sorecvfrom(struct socket *so)
  */
 int sosendto(struct socket *so, struct mbuf *m)
 {
+    Slirp *slirp = so->slirp;
     int ret;
     struct sockaddr_in addr;
 
@@ -547,9 +553,10 @@ int sosendto(struct socket *so, struct mbuf *m)
     DEBUG_ARG("m = %lx", (long)m);
 
     addr.sin_family = AF_INET;
-    if ((so->so_faddr.s_addr & vnetwork_mask.s_addr) == vnetwork_addr.s_addr) {
+    if ((so->so_faddr.s_addr & slirp->vnetwork_mask.s_addr) ==
+        slirp->vnetwork_addr.s_addr) {
         /* It's an alias */
-        if (so->so_faddr.s_addr == vnameserver_addr.s_addr) {
+        if (so->so_faddr.s_addr == slirp->vnameserver_addr.s_addr) {
             addr.sin_addr = dns_addr;
         } else {
             addr.sin_addr = loopback_addr;
@@ -582,8 +589,8 @@ int sosendto(struct socket *so, struct mbuf *m)
 /*
  * Listen for incoming TCP connections
  */
-struct socket *tcp_listen(u_int32_t haddr, u_int hport, u_int32_t laddr,
-                          u_int lport, int flags)
+struct socket *tcp_listen(Slirp *slirp, u_int32_t haddr, u_int hport,
+                          u_int32_t laddr, u_int lport, int flags)
 {
     struct sockaddr_in addr;
     struct socket *so;
@@ -597,7 +604,8 @@ struct socket *tcp_listen(u_int32_t haddr, u_int hport, u_int32_t laddr,
     DEBUG_ARG("lport = %d", lport);
     DEBUG_ARG("flags = %x", flags);
 
-    if ((so = socreate()) == NULL) {
+    so = socreate(slirp);
+    if (!so) {
         return NULL;
     }
 
@@ -606,7 +614,7 @@ struct socket *tcp_listen(u_int32_t haddr, u_int hport, u_int32_t laddr,
         free(so);
         return NULL;
     }
-    insque(so, &tcb);
+    insque(so, &slirp->tcb);
 
     /*
      * SS_FACCEPTONCE sockets must time out.
@@ -646,7 +654,7 @@ struct socket *tcp_listen(u_int32_t haddr, u_int hport, u_int32_t laddr,
     so->so_fport = addr.sin_port;
     if (addr.sin_addr.s_addr == 0 ||
         addr.sin_addr.s_addr == loopback_addr.s_addr)
-        so->so_faddr = vhost_addr;
+        so->so_faddr = slirp->vhost_addr;
     else
         so->so_faddr = addr.sin_addr;
 

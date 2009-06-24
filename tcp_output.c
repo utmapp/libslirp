@@ -289,7 +289,7 @@ send:
      * the template for sends on this connection.
      */
     if (len) {
-        m = m_get();
+        m = m_get(so->slirp);
         if (m == NULL) {
             error = 1;
             goto out;
@@ -309,7 +309,7 @@ send:
         if (off + len == so->so_snd.sb_cc)
             flags |= TH_PUSH;
     } else {
-        m = m_get();
+        m = m_get(so->slirp);
         if (m == NULL) {
             error = 1;
             goto out;

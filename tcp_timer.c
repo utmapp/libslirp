@@ -32,23 +32,21 @@
 
 #include <slirp.h>
 
-u_int32_t tcp_now; /* for RFC 1323 timestamps */
-
 static struct tcpcb *tcp_timers(register struct tcpcb *tp, int timer);
 
 /*
  * Fast timeout routine for processing delayed acks
  */
-void tcp_fasttimo(void)
+void tcp_fasttimo(Slirp *slirp)
 {
     register struct socket *so;
     register struct tcpcb *tp;
 
     DEBUG_CALL("tcp_fasttimo");
 
-    so = tcb.so_next;
+    so = slirp->tcb.so_next;
     if (so)
-        for (; so != &tcb; so = so->so_next)
+        for (; so != &slirp->tcb; so = so->so_next)
             if ((tp = (struct tcpcb *)so->so_tcpcb) &&
                 (tp->t_flags & TF_DELACK)) {
                 tp->t_flags &= ~TF_DELACK;
@@ -62,7 +60,7 @@ void tcp_fasttimo(void)
  * Updates the timers in all active tcb's and
  * causes finite state machine actions if timers expire.
  */
-void tcp_slowtimo(void)
+void tcp_slowtimo(Slirp *slirp)
 {
     register struct socket *ip, *ipnxt;
     register struct tcpcb *tp;
@@ -73,10 +71,10 @@ void tcp_slowtimo(void)
     /*
      * Search through tcb's and update active timers.
      */
-    ip = tcb.so_next;
+    ip = slirp->tcb.so_next;
     if (ip == 0)
         return;
-    for (; ip != &tcb; ip = ipnxt) {
+    for (; ip != &slirp->tcb; ip = ipnxt) {
         ipnxt = ip->so_next;
         tp = sototcpcb(ip);
         if (tp == 0)
@@ -93,8 +91,8 @@ void tcp_slowtimo(void)
             tp->t_rtt++;
     tpgone:;
     }
-    tcp_iss += TCP_ISSINCR / PR_SLOWHZ; /* increment iss */
-    tcp_now++; /* for timestamps */
+    slirp->tcp_iss += TCP_ISSINCR / PR_SLOWHZ; /* increment iss */
+    slirp->tcp_now++; /* for timestamps */
 }
 
 /*
