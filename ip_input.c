@@ -42,10 +42,6 @@
 #include <osdep.h>
 #include "ip_icmp.h"
 
-#ifdef LOG_ENABLED
-struct ipstat ipstat;
-#endif
-
 struct ipq ipq;
 
 static struct ip *ip_reass(register struct ip *ip, register struct ipq *fp);
@@ -78,24 +74,19 @@ void ip_input(struct mbuf *m)
     DEBUG_ARG("m = %lx", (long)m);
     DEBUG_ARG("m_len = %d", m->m_len);
 
-    STAT(ipstat.ips_total++);
-
     if (m->m_len < sizeof(struct ip)) {
-        STAT(ipstat.ips_toosmall++);
         return;
     }
 
     ip = mtod(m, struct ip *);
 
     if (ip->ip_v != IPVERSION) {
-        STAT(ipstat.ips_badvers++);
         goto bad;
     }
 
     hlen = ip->ip_hl << 2;
     if (hlen < sizeof(struct ip) || hlen > m->m_len) { /* min header length */
-        STAT(ipstat.ips_badhlen++); /* or packet too short */
-        goto bad;
+        goto bad; /* or packet too short */
     }
 
     /* keep ip header intact for ICMP reply
@@ -103,7 +94,6 @@ void ip_input(struct mbuf *m)
      * if (ip->ip_sum) {
      */
     if (cksum(m, hlen)) {
-        STAT(ipstat.ips_badsum++);
         goto bad;
     }
 
@@ -112,7 +102,6 @@ void ip_input(struct mbuf *m)
      */
     NTOHS(ip->ip_len);
     if (ip->ip_len < hlen) {
-        STAT(ipstat.ips_badlen++);
         goto bad;
     }
     NTOHS(ip->ip_id);
@@ -125,7 +114,6 @@ void ip_input(struct mbuf *m)
      * Drop packet if shorter than we expect.
      */
     if (m->m_len < ip->ip_len) {
-        STAT(ipstat.ips_tooshort++);
         goto bad;
     }
 
@@ -206,11 +194,9 @@ void ip_input(struct mbuf *m)
          * attempt reassembly; if it succeeds, proceed.
          */
         if (ip->ip_tos & 1 || ip->ip_off) {
-            STAT(ipstat.ips_fragments++);
             ip = ip_reass(ip, fp);
             if (ip == NULL)
                 return;
-            STAT(ipstat.ips_reassembled++);
             m = dtom(ip);
         } else if (fp)
             ip_freef(fp);
@@ -221,7 +207,6 @@ void ip_input(struct mbuf *m)
     /*
      * Switch out to protocol's input routine.
      */
-    STAT(ipstat.ips_delivered++);
     switch (ip->ip_p) {
     case IPPROTO_TCP:
         tcp_input(m, hlen, (struct socket *)NULL);
@@ -233,7 +218,6 @@ void ip_input(struct mbuf *m)
         icmp_input(m, hlen);
         break;
     default:
-        STAT(ipstat.ips_noproto++);
         m_free(m);
     }
     return;
@@ -394,7 +378,6 @@ insert:
     return ip;
 
 dropfrag:
-    STAT(ipstat.ips_fragdropped++);
     m_freem(m);
     return NULL;
 }
@@ -460,7 +443,6 @@ void ip_slowtimo(void)
         struct ipq *fp = container_of(l, struct ipq, ip_link);
         l = l->next;
         if (--fp->ipq_ttl == 0) {
-            STAT(ipstat.ips_fragtimeout++);
             ip_freef(fp);
         }
     }
@@ -656,7 +638,6 @@ int ip_dooptions(m) struct mbuf *m;
 return (0);
 bad : icmp_error(m, type, code, 0, 0);
 
-STAT(ipstat.ips_badoptions++);
 return (1);
 }
 

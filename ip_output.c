@@ -71,7 +71,6 @@ int ip_output(struct socket *so, struct mbuf *m0)
     ip->ip_off &= IP_DF;
     ip->ip_id = htons(ip_id++);
     ip->ip_hl = hlen >> 2;
-    STAT(ipstat.ips_localout++);
 
     /*
      * If small enough for interface, can just send directly.
@@ -92,7 +91,6 @@ int ip_output(struct socket *so, struct mbuf *m0)
      */
     if (ip->ip_off & IP_DF) {
         error = -1;
-        STAT(ipstat.ips_cantfrag++);
         goto bad;
     }
 
@@ -117,7 +115,6 @@ int ip_output(struct socket *so, struct mbuf *m0)
             m = m_get();
             if (m == NULL) {
                 error = -1;
-                STAT(ipstat.ips_odropped++);
                 goto sendorfree;
             }
             m->m_data += IF_MAXLINKHDR;
@@ -144,7 +141,6 @@ int ip_output(struct socket *so, struct mbuf *m0)
             mhip->ip_sum = cksum(m, mhlen);
             *mnext = m;
             mnext = &m->m_nextpkt;
-            STAT(ipstat.ips_ofragments++);
         }
         /*
          * Update first fragment by trimming what's been copied out
@@ -165,9 +161,6 @@ int ip_output(struct socket *so, struct mbuf *m0)
             else
                 m_freem(m);
         }
-
-        if (error == 0)
-            STAT(ipstat.ips_fragmented++);
     }
 
 done:

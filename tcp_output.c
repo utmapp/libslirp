@@ -246,8 +246,6 @@ again:
     /*
      * No reason to send a segment, just return.
      */
-    STAT(tcpstat.tcps_didnuttin++);
-
     return (0);
 
 send:
@@ -291,16 +289,6 @@ send:
      * the template for sends on this connection.
      */
     if (len) {
-        if (tp->t_force && len == 1)
-            STAT(tcpstat.tcps_sndprobe++);
-        else if (SEQ_LT(tp->snd_nxt, tp->snd_max)) {
-            STAT(tcpstat.tcps_sndrexmitpack++);
-            STAT(tcpstat.tcps_sndrexmitbyte += len);
-        } else {
-            STAT(tcpstat.tcps_sndpack++);
-            STAT(tcpstat.tcps_sndbyte += len);
-        }
-
         m = m_get();
         if (m == NULL) {
             error = 1;
@@ -321,15 +309,6 @@ send:
         if (off + len == so->so_snd.sb_cc)
             flags |= TH_PUSH;
     } else {
-        if (tp->t_flags & TF_ACKNOW)
-            STAT(tcpstat.tcps_sndacks++);
-        else if (flags & (TH_SYN | TH_FIN | TH_RST))
-            STAT(tcpstat.tcps_sndctrl++);
-        else if (SEQ_GT(tp->snd_up, tp->snd_una))
-            STAT(tcpstat.tcps_sndurg++);
-        else
-            STAT(tcpstat.tcps_sndwinup++);
-
         m = m_get();
         if (m == NULL) {
             error = 1;
@@ -434,7 +413,6 @@ send:
             if (tp->t_rtt == 0) {
                 tp->t_rtt = 1;
                 tp->t_rtseq = startseq;
-                STAT(tcpstat.tcps_segstimed++);
             }
         }
 
@@ -476,7 +454,6 @@ send:
     out:
         return (error);
     }
-    STAT(tcpstat.tcps_sndtotal++);
 
     /*
      * Data sent (as far as we can tell).
