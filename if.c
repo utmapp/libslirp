@@ -157,7 +157,7 @@ void if_start(Slirp *slirp)
 
 again:
     /* check if we can really output */
-    if (!slirp_can_output())
+    if (!slirp_can_output(slirp->opaque))
         return;
 
     /*
