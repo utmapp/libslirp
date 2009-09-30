@@ -634,12 +634,11 @@ int ip_dooptions(m) struct mbuf *m;
         ip_forward(m, 1);
         return (1);
     }
-}
-}
-return (0);
-bad : icmp_error(m, type, code, 0, 0);
+    return (0);
+bad:
+    icmp_error(m, type, code, 0, 0);
 
-return (1);
+    return (1);
 }
 
 #endif /* notdef */
