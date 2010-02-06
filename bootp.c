@@ -30,7 +30,7 @@
 static const uint8_t rfc1533_cookie[] = { RFC1533_COOKIE };
 
 #ifdef DEBUG
-#define dprintf(fmt, ...)                     \
+#define DPRINTF(fmt, ...)                     \
     do                                        \
         if (slirp_debug & DBG_CALL) {         \
             fprintf(dfd, fmt, ##__VA_ARGS__); \
@@ -38,7 +38,7 @@ static const uint8_t rfc1533_cookie[] = { RFC1533_COOKIE };
         }                                     \
     while (0)
 #else
-#define dprintf(fmt, ...)
+#define DPRINTF(fmt, ...)
 #endif
 
 static BOOTPClient *get_new_addr(Slirp *slirp, struct in_addr *paddr,
@@ -120,7 +120,7 @@ static void dhcp_decode(const struct bootp_t *bp, int *pmsg_type,
             if (p >= p_end)
                 break;
             len = *p++;
-            dprintf("dhcp: tag=%d len=%d\n", tag, len);
+            DPRINTF("dhcp: tag=%d len=%d\n", tag, len);
 
             switch (tag) {
             case RFC2132_MSG_TYPE:
@@ -154,11 +154,11 @@ static void bootp_reply(Slirp *slirp, const struct bootp_t *bp)
 
     /* extract exact DHCP msg type */
     dhcp_decode(bp, &dhcp_msg_type, &preq_addr);
-    dprintf("bootp packet op=%d msgtype=%d", bp->bp_op, dhcp_msg_type);
+    DPRINTF("bootp packet op=%d msgtype=%d", bp->bp_op, dhcp_msg_type);
     if (preq_addr)
-        dprintf(" req_addr=%08x\n", ntohl(preq_addr->s_addr));
+        DPRINTF(" req_addr=%08x\n", ntohl(preq_addr->s_addr));
     else
-        dprintf("\n");
+        DPRINTF("\n");
 
     if (dhcp_msg_type == 0)
         dhcp_msg_type = DHCPREQUEST; /* Force reply for old BOOTP clients */
@@ -188,7 +188,7 @@ static void bootp_reply(Slirp *slirp, const struct bootp_t *bp)
         new_addr:
             bc = get_new_addr(slirp, &daddr.sin_addr, slirp->client_ethaddr);
             if (!bc) {
-                dprintf("no address left\n");
+                DPRINTF("no address left\n");
                 return;
             }
         }
@@ -229,7 +229,7 @@ static void bootp_reply(Slirp *slirp, const struct bootp_t *bp)
     q += 4;
 
     if (bc) {
-        dprintf("%s addr=%08x\n",
+        DPRINTF("%s addr=%08x\n",
                 (dhcp_msg_type == DHCPDISCOVER) ? "offered" : "ack'ed",
                 ntohl(daddr.sin_addr.s_addr));
 
@@ -285,7 +285,7 @@ static void bootp_reply(Slirp *slirp, const struct bootp_t *bp)
     } else {
         static const char nak_msg[] = "requested address not available";
 
-        dprintf("nak'ed addr=%08x\n", ntohl(preq_addr->s_addr));
+        DPRINTF("nak'ed addr=%08x\n", ntohl(preq_addr->s_addr));
 
         *q++ = RFC2132_MSG_TYPE;
         *q++ = 1;
