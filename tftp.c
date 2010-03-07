@@ -162,7 +162,6 @@ static void tftp_send_error(struct tftp_session *spt, u_int16_t errorcode,
     struct sockaddr_in saddr, daddr;
     struct mbuf *m;
     struct tftp_t *tp;
-    int nobytes;
 
     m = m_get(spt->slirp);
 
@@ -185,8 +184,6 @@ static void tftp_send_error(struct tftp_session *spt, u_int16_t errorcode,
 
     daddr.sin_addr = spt->client_ip;
     daddr.sin_port = spt->client_port;
-
-    nobytes = 2;
 
     m->m_len = sizeof(struct tftp_t) - 514 + 3 + strlen(msg) -
                sizeof(struct ip) - sizeof(struct udphdr);
