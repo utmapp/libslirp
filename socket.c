@@ -593,6 +593,7 @@ struct socket *tcp_listen(Slirp *slirp, u_int32_t haddr, u_int hport,
     struct socket *so;
     int s, opt = 1;
     socklen_t addrlen = sizeof(addr);
+    memset(&addr, 0, addrlen);
 
     DEBUG_CALL("tcp_listen");
     DEBUG_ARG("haddr = %x", haddr);
