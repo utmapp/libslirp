@@ -46,7 +46,7 @@
     {                                    \
         l_util.l = sum;                  \
         sum = l_util.s[0] + l_util.s[1]; \
-        ADDCARRY(sum);                   \
+        (void)ADDCARRY(sum);             \
     }
 
 int cksum(struct mbuf *m, int len)
