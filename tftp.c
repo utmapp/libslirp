@@ -93,8 +93,8 @@ static int tftp_session_find(Slirp *slirp, struct tftp_t *tp)
     return -1;
 }
 
-static int tftp_read_data(struct tftp_session *spt, u_int16_t block_nr,
-                          u_int8_t *buf, int len)
+static int tftp_read_data(struct tftp_session *spt, uint16_t block_nr,
+                          uint8_t *buf, int len)
 {
     int fd;
     int bytes_read = 0;
@@ -156,7 +156,7 @@ static int tftp_send_oack(struct tftp_session *spt, const char *key,
     return 0;
 }
 
-static void tftp_send_error(struct tftp_session *spt, u_int16_t errorcode,
+static void tftp_send_error(struct tftp_session *spt, uint16_t errorcode,
                             const char *msg, struct tftp_t *recv_tp)
 {
     struct sockaddr_in saddr, daddr;
@@ -194,7 +194,7 @@ out:
     tftp_session_terminate(spt);
 }
 
-static int tftp_send_data(struct tftp_session *spt, u_int16_t block_nr,
+static int tftp_send_data(struct tftp_session *spt, uint16_t block_nr,
                           struct tftp_t *recv_tp)
 {
     struct sockaddr_in saddr, daddr;

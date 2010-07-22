@@ -467,7 +467,7 @@ int ip_dooptions(m) struct mbuf *m;
     register struct in_ifaddr *ia;
     int opt, optlen, cnt, off, code, type, forward = 0;
     struct in_addr *sin, dst;
-    typedef u_int32_t n_time;
+    typedef uint32_t n_time;
     n_time ntime;
 
     dst = ip->ip_dst;
