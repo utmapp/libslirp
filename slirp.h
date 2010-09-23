@@ -263,7 +263,7 @@ char *index(const char *, int);
 long gethostid(void);
 #endif
 
-void lprint(const char *, ...);
+void lprint(const char *, ...) GCC_FMT_ATTR(1, 2);
 
 #ifndef _WIN32
 #include <netdb.h>
