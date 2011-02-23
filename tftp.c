@@ -136,12 +136,8 @@ static int tftp_send_oack(struct tftp_session *spt, const char *key,
     m->m_data += sizeof(struct udpiphdr);
 
     tp->tp_op = htons(TFTP_OACK);
-    n += snprintf((char *)tp->x.tp_buf + n, sizeof(tp->x.tp_buf) - n, "%s",
-                  key) +
-         1;
-    n += snprintf((char *)tp->x.tp_buf + n, sizeof(tp->x.tp_buf) - n, "%u",
-                  value) +
-         1;
+    n += snprintf(tp->x.tp_buf + n, sizeof(tp->x.tp_buf) - n, "%s", key) + 1;
+    n += snprintf(tp->x.tp_buf + n, sizeof(tp->x.tp_buf) - n, "%u", value) + 1;
 
     saddr.sin_addr = recv_tp->ip.ip_dst;
     saddr.sin_port = recv_tp->udp.uh_dport;
@@ -282,7 +278,7 @@ static void tftp_handle_rrq(Slirp *slirp, struct tftp_t *tp, int pktlen)
 
     /* skip header fields */
     k = 0;
-    pktlen -= ((uint8_t *)&tp->x.tp_buf[0] - (uint8_t *)tp);
+    pktlen -= offsetof(struct tftp_t, x.tp_buf);
 
     /* prepend tftp_prefix */
     prefix_len = strlen(slirp->tftp_prefix);
@@ -298,7 +294,7 @@ static void tftp_handle_rrq(Slirp *slirp, struct tftp_t *tp, int pktlen)
             tftp_send_error(spt, 2, "Access violation", tp);
             return;
         }
-        req_fname[k] = (char)tp->x.tp_buf[k];
+        req_fname[k] = tp->x.tp_buf[k];
         if (req_fname[k++] == '\0') {
             break;
         }
@@ -310,7 +306,7 @@ static void tftp_handle_rrq(Slirp *slirp, struct tftp_t *tp, int pktlen)
         return;
     }
 
-    if (strcasecmp((const char *)&tp->x.tp_buf[k], "octet") != 0) {
+    if (strcasecmp(&tp->x.tp_buf[k], "octet") != 0) {
         tftp_send_error(spt, 4, "Unsupported transfer mode", tp);
         return;
     }
@@ -338,7 +334,7 @@ static void tftp_handle_rrq(Slirp *slirp, struct tftp_t *tp, int pktlen)
     while (k < pktlen) {
         const char *key, *value;
 
-        key = (const char *)&tp->x.tp_buf[k];
+        key = &tp->x.tp_buf[k];
         k += strlen(key) + 1;
 
         if (k >= pktlen) {
@@ -346,7 +342,7 @@ static void tftp_handle_rrq(Slirp *slirp, struct tftp_t *tp, int pktlen)
             return;
         }
 
-        value = (const char *)&tp->x.tp_buf[k];
+        value = &tp->x.tp_buf[k];
         k += strlen(value) + 1;
 
         if (strcasecmp(key, "tsize") == 0) {
