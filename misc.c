@@ -112,6 +112,7 @@ int fork_exec(struct socket *so, const char *ex, int do_pty)
     char *bptr;
     const char *curarg;
     int c, i, ret;
+    pid_t pid;
 
     DEBUG_CALL("fork_exec");
     DEBUG_ARG("so = %lx", (long)so);
@@ -135,7 +136,8 @@ int fork_exec(struct socket *so, const char *ex, int do_pty)
         }
     }
 
-    switch (fork()) {
+    pid = fork();
+    switch (pid) {
     case -1:
         lprint("Error: fork failed: %s\n", strerror(errno));
         close(s);
@@ -201,6 +203,7 @@ int fork_exec(struct socket *so, const char *ex, int do_pty)
         exit(1);
 
     default:
+        qemu_add_child_watch(pid);
         if (do_pty == 2) {
             close(s);
             so->s = master;
