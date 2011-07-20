@@ -118,7 +118,9 @@ void udp_input(register struct mbuf *m, int iphlen)
     /*
      *  handle DHCP/BOOTP
      */
-    if (ntohs(uh->uh_dport) == BOOTP_SERVER) {
+    if (ntohs(uh->uh_dport) == BOOTP_SERVER &&
+        (ip->ip_dst.s_addr == slirp->vhost_addr.s_addr ||
+         ip->ip_dst.s_addr == 0xffffffff)) {
         bootp_input(m);
         goto bad;
     }
@@ -126,7 +128,8 @@ void udp_input(register struct mbuf *m, int iphlen)
     /*
      *  handle TFTP
      */
-    if (ntohs(uh->uh_dport) == TFTP_SERVER) {
+    if (ntohs(uh->uh_dport) == TFTP_SERVER &&
+        ip->ip_dst.s_addr == slirp->vhost_addr.s_addr) {
         tftp_input(m);
         goto bad;
     }
