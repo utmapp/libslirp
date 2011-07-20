@@ -65,6 +65,8 @@ void sofree(struct socket *so)
         slirp->tcp_last_so = &slirp->tcb;
     } else if (so == slirp->udp_last_so) {
         slirp->udp_last_so = &slirp->udb;
+    } else if (so == slirp->icmp_last_so) {
+        slirp->icmp_last_so = &slirp->icmp;
     }
     m_free(so->so_m);
 
