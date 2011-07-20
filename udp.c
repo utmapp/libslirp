@@ -123,15 +123,15 @@ void udp_input(register struct mbuf *m, int iphlen)
         goto bad;
     }
 
-    if (slirp->restricted) {
-        goto bad;
-    }
-
     /*
      *  handle TFTP
      */
     if (ntohs(uh->uh_dport) == TFTP_SERVER) {
         tftp_input(m);
+        goto bad;
+    }
+
+    if (slirp->restricted) {
         goto bad;
     }
 
