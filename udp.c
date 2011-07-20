@@ -219,7 +219,7 @@ void udp_input(register struct mbuf *m, int iphlen)
 
     return;
 bad:
-    m_freem(m);
+    m_free(m);
     return;
 }
 
