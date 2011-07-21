@@ -499,9 +499,8 @@ int ip_dooptions(m) struct mbuf *m;
                  */
                 break;
             }
-            off--;
-            / *0 origin * / if (off > optlen - sizeof(struct in_addr))
-            {
+            off--; /* 0 origin */
+            if (off > optlen - sizeof(struct in_addr)) {
                 /*
                  * End of source route.  Should be for us.
                  */
@@ -543,8 +542,9 @@ int ip_dooptions(m) struct mbuf *m;
             /*
              * If no space remains, ignore.
              */
-            off--;
-            *0 origin *if (off > optlen - sizeof(struct in_addr)) break;
+            off--; /* 0 origin */
+            if (off > optlen - sizeof(struct in_addr))
+                break;
             bcopy((caddr_t)(&ip->ip_dst), (caddr_t)&ipaddr.sin_addr,
                   sizeof(ipaddr.sin_addr));
             /*
