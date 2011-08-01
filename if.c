@@ -6,6 +6,7 @@
  */
 
 #include <slirp.h>
+#include "qemu-timer.h"
 
 #define ifs_init(ifm) ((ifm)->ifs_next = (ifm)->ifs_prev = (ifm))
 
@@ -102,6 +103,9 @@ void if_output(struct socket *so, struct mbuf *ifm)
     ifs_init(ifm);
     insque(ifm, ifq);
 
+    /* Expiration date = Now + 1 second */
+    ifm->expiration_date = qemu_get_clock_ns(rt_clock) + 1000000000ULL;
+
 diddit:
     slirp->if_queued++;
 
@@ -148,6 +152,9 @@ diddit:
  */
 void if_start(Slirp *slirp)
 {
+    int requeued = 0;
+    uint64_t now;
+
     struct mbuf *ifm, *ifqt;
 
     DEBUG_CALL("if_start");
@@ -159,6 +166,8 @@ again:
     /* check if we can really output */
     if (!slirp_can_output(slirp->opaque))
         return;
+
+    now = qemu_get_clock_ns(rt_clock);
 
     /*
      * See which queue to get next packet from
@@ -194,11 +203,22 @@ again:
             ifm->ifq_so->so_nqueued = 0;
     }
 
-    /* Encapsulate the packet for sending */
-    if_encap(slirp, (uint8_t *)ifm->m_data, ifm->m_len);
-
-    m_free(ifm);
+    if (ifm->expiration_date < now) {
+        /* Expired */
+        m_free(ifm);
+    } else {
+        /* Encapsulate the packet for sending */
+        if (if_encap(slirp, ifm)) {
+            m_free(ifm);
+        } else {
+            /* re-queue */
+            insque(ifm, ifqt);
+            requeued++;
+        }
+    }
 
     if (slirp->if_queued)
         goto again;
+
+    slirp->if_queued = requeued;
 }
