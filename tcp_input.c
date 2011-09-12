@@ -909,7 +909,7 @@ findso:
         if (SEQ_LEQ(ti->ti_ack, tp->snd_una)) {
             if (ti->ti_len == 0 && tiwin == tp->snd_wnd) {
                 DEBUG_MISC(
-                    (dfd, " dup ack  m = %lx  so = %lx \n", (long)m, (long)so));
+                    (dfd, " dup ack  m = %lx  so = %lx\n", (long)m, (long)so));
                 /*
                  * If we have outstanding data (other than
                  * a window probe), this is a completely
@@ -1287,7 +1287,7 @@ static void tcp_dooptions(struct tcpcb *tp, u_char *cp, int cnt,
     int opt, optlen;
 
     DEBUG_CALL("tcp_dooptions");
-    DEBUG_ARGS((dfd, " tp = %lx  cnt=%i \n", (long)tp, cnt));
+    DEBUG_ARGS((dfd, " tp = %lx  cnt=%i\n", (long)tp, cnt));
 
     for (; cnt > 0; cnt -= optlen, cp += optlen) {
         opt = cp[0];
