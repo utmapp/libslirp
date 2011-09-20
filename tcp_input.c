@@ -611,6 +611,7 @@ findso:
             so->so_ti = ti;
             tp->t_timer[TCPT_KEEP] = TCPTV_KEEP_INIT;
             tp->t_state = TCPS_SYN_RECEIVED;
+            tcp_template(tp);
         }
         return;
 
