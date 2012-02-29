@@ -93,8 +93,13 @@ void if_output(struct socket *so, struct mbuf *ifm)
             ifs_insque(ifm, ifq->ifs_prev);
             goto diddit;
         }
-    } else
+    } else {
         ifq = slirp->if_batchq.ifq_prev;
+        /* Set next_m if the queue was empty so far */
+        if (slirp->next_m == &slirp->if_batchq) {
+            slirp->next_m = ifm;
+        }
+    }
 
     /* Create a new doubly linked list for this session */
     ifm->ifq_so = so;
@@ -166,13 +171,8 @@ void if_start(Slirp *slirp)
         if (slirp->if_fastq.ifq_next != &slirp->if_fastq) {
             ifm = slirp->if_fastq.ifq_next;
         } else {
-            /* Nothing on fastq, see if next_m is valid */
-            if (slirp->next_m != &slirp->if_batchq) {
-                ifm = slirp->next_m;
-            } else {
-                ifm = slirp->if_batchq.ifq_next;
-            }
-
+            /* Nothing on fastq, pick up from batchq via next_m */
+            ifm = slirp->next_m;
             from_batchq = true;
         }
 
@@ -198,6 +198,12 @@ void if_start(Slirp *slirp)
         if (ifm->ifs_next != ifm) {
             insque(ifm->ifs_next, ifqt);
             ifs_remque(ifm);
+            /* Set next_m if the session packet is now the only one on
+             * batchq */
+            if (ifqt == &slirp->if_batchq &&
+                slirp->next_m == &slirp->if_batchq) {
+                slirp->next_m = ifm->ifs_next;
+            }
         }
 
         /* Update so_queued */
