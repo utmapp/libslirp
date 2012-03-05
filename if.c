@@ -107,8 +107,6 @@ void if_output(struct socket *so, struct mbuf *ifm)
     insque(ifm, ifq);
 
 diddit:
-    slirp->if_queued++;
-
     if (so) {
         /* Update *_queued */
         so->so_queued++;
@@ -153,7 +151,6 @@ diddit:
 void if_start(Slirp *slirp)
 {
     uint64_t now = qemu_get_clock_ns(rt_clock);
-    int requeued = 0;
     bool from_batchq, next_from_batchq;
     struct mbuf *ifm, *ifm_next, *ifqt;
 
@@ -178,8 +175,7 @@ void if_start(Slirp *slirp)
     while (ifm_next) {
         /* check if we can really output */
         if (!slirp_can_output(slirp->opaque)) {
-            slirp->if_start_busy = false;
-            return;
+            break;
         }
 
         ifm = ifm_next;
@@ -196,12 +192,9 @@ void if_start(Slirp *slirp)
             ifm_next = NULL;
         }
 
-        slirp->if_queued--;
-
         /* Try to send packet unless it already expired */
         if (ifm->expiration_date >= now && !if_encap(slirp, ifm)) {
             /* Packet is delayed due to pending ARP resolution */
-            requeued++;
             continue;
         }
 
@@ -240,8 +233,6 @@ void if_start(Slirp *slirp)
 
         m_free(ifm);
     }
-
-    slirp->if_queued = requeued;
 
     slirp->if_start_busy = false;
 }
