@@ -121,7 +121,7 @@ void tcp_respond(struct tcpcb *tp, struct tcpiphdr *ti, struct mbuf *m,
     if (tp)
         win = sbspace(&tp->t_socket->so_rcv);
     if (m == NULL) {
-        if ((m = m_get(tp->t_socket->slirp)) == NULL)
+        if (!tp || (m = m_get(tp->t_socket->slirp)) == NULL)
             return;
         tlen = 0;
         m->m_data += IF_MAXLINKHDR;
