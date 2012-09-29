@@ -1275,8 +1275,6 @@ drop:
      * Drop space held by incoming segment and return.
      */
     m_free(m);
-
-    return;
 }
 
 static void tcp_dooptions(struct tcpcb *tp, u_char *cp, int cnt,

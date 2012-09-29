@@ -209,7 +209,6 @@ void ip_input(struct mbuf *m)
     return;
 bad:
     m_free(m);
-    return;
 }
 
 #define iptofrag(P) ((struct ipasfrag *)(((char *)(P)) - sizeof(struct qlink)))
