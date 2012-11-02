@@ -363,7 +363,7 @@ void icmp_error(struct mbuf *msrc, u_char type, u_char code, int minsize,
 
     ip->ip_ttl = MAXTTL;
     ip->ip_p = IPPROTO_ICMP;
-    ip->ip_dst = ip->ip_src; /* ip adresses */
+    ip->ip_dst = ip->ip_src; /* ip addresses */
     ip->ip_src = m->slirp->vhost_addr;
 
     (void)ip_output((struct socket *)NULL, m);
