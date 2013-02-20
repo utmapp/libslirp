@@ -38,9 +38,6 @@ static const uint8_t special_ethaddr[ETH_ALEN] = { 0x52, 0x55, 0x00,
 
 static const uint8_t zero_ethaddr[ETH_ALEN] = { 0, 0, 0, 0, 0, 0 };
 
-/* XXX: suppress those select globals */
-fd_set *global_readfds, *global_writefds, *global_xfds;
-
 u_int curtime;
 static u_int time_fasttimo, last_slowtimo;
 static int do_slowtimo;
@@ -262,9 +259,6 @@ void slirp_cleanup(Slirp *slirp)
     (((so)->so_state & (SS_FCANTSENDMORE | SS_ISFCONNECTED)) == SS_ISFCONNECTED)
 #define CONN_CANFRCV(so) \
     (((so)->so_state & (SS_FCANTRCVMORE | SS_ISFCONNECTED)) == SS_ISFCONNECTED)
-#define UPD_NFDS(x) \
-    if (nfds < (x)) \
-    nfds = (x)
 
 void slirp_update_timeout(uint32_t *timeout)
 {
@@ -273,23 +267,15 @@ void slirp_update_timeout(uint32_t *timeout)
     }
 }
 
-void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
-                       fd_set *xfds)
+void slirp_pollfds_fill(GArray *pollfds)
 {
     Slirp *slirp;
     struct socket *so, *so_next;
-    int nfds;
 
     if (QTAILQ_EMPTY(&slirp_instances)) {
         return;
     }
 
-    /* fail safe */
-    global_readfds = NULL;
-    global_writefds = NULL;
-    global_xfds = NULL;
-
-    nfds = *pnfds;
     /*
      * First, TCP sockets
      */
@@ -304,7 +290,11 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
                         (&slirp->ipq.ip_link != slirp->ipq.ip_link.next));
 
         for (so = slirp->tcb.so_next; so != &slirp->tcb; so = so_next) {
+            int events = 0;
+
             so_next = so->so_next;
+
+            so->pollfds_idx = -1;
 
             /*
              * See if we need a tcp_fasttimo
@@ -325,8 +315,12 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
              * Set for reading sockets which are accepting
              */
             if (so->so_state & SS_FACCEPTCONN) {
-                FD_SET(so->s, readfds);
-                UPD_NFDS(so->s);
+                GPollFD pfd = {
+                    .fd = so->s,
+                    .events = G_IO_IN | G_IO_HUP | G_IO_ERR,
+                };
+                so->pollfds_idx = pollfds->len;
+                g_array_append_val(pollfds, pfd);
                 continue;
             }
 
@@ -334,8 +328,12 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
              * Set for writing sockets which are connecting
              */
             if (so->so_state & SS_ISFCONNECTING) {
-                FD_SET(so->s, writefds);
-                UPD_NFDS(so->s);
+                GPollFD pfd = {
+                    .fd = so->s,
+                    .events = G_IO_OUT | G_IO_ERR,
+                };
+                so->pollfds_idx = pollfds->len;
+                g_array_append_val(pollfds, pfd);
                 continue;
             }
 
@@ -344,8 +342,7 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
              * we have something to send
              */
             if (CONN_CANFSEND(so) && so->so_rcv.sb_cc) {
-                FD_SET(so->s, writefds);
-                UPD_NFDS(so->s);
+                events |= G_IO_OUT | G_IO_ERR;
             }
 
             /*
@@ -354,9 +351,16 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
              */
             if (CONN_CANFRCV(so) &&
                 (so->so_snd.sb_cc < (so->so_snd.sb_datalen / 2))) {
-                FD_SET(so->s, readfds);
-                FD_SET(so->s, xfds);
-                UPD_NFDS(so->s);
+                events |= G_IO_IN | G_IO_HUP | G_IO_ERR | G_IO_PRI;
+            }
+
+            if (events) {
+                GPollFD pfd = {
+                    .fd = so->s,
+                    .events = events,
+                };
+                so->pollfds_idx = pollfds->len;
+                g_array_append_val(pollfds, pfd);
             }
         }
 
@@ -365,6 +369,8 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
          */
         for (so = slirp->udb.so_next; so != &slirp->udb; so = so_next) {
             so_next = so->so_next;
+
+            so->pollfds_idx = -1;
 
             /*
              * See if it's timed out
@@ -389,8 +395,12 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
              * (XXX <= 4 ?)
              */
             if ((so->so_state & SS_ISFCONNECTED) && so->so_queued <= 4) {
-                FD_SET(so->s, readfds);
-                UPD_NFDS(so->s);
+                GPollFD pfd = {
+                    .fd = so->s,
+                    .events = G_IO_IN | G_IO_HUP | G_IO_ERR,
+                };
+                so->pollfds_idx = pollfds->len;
+                g_array_append_val(pollfds, pfd);
             }
         }
 
@@ -399,6 +409,8 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
          */
         for (so = slirp->icmp.so_next; so != &slirp->icmp; so = so_next) {
             so_next = so->so_next;
+
+            so->pollfds_idx = -1;
 
             /*
              * See if it's timed out
@@ -413,17 +425,18 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
             }
 
             if (so->so_state & SS_ISFCONNECTED) {
-                FD_SET(so->s, readfds);
-                UPD_NFDS(so->s);
+                GPollFD pfd = {
+                    .fd = so->s,
+                    .events = G_IO_IN | G_IO_HUP | G_IO_ERR,
+                };
+                so->pollfds_idx = pollfds->len;
+                g_array_append_val(pollfds, pfd);
             }
         }
     }
-
-    *pnfds = nfds;
 }
 
-void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
-                       int select_error)
+void slirp_pollfds_poll(GArray *pollfds, int select_error)
 {
     Slirp *slirp;
     struct socket *so, *so_next;
@@ -432,10 +445,6 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
     if (QTAILQ_EMPTY(&slirp_instances)) {
         return;
     }
-
-    global_readfds = readfds;
-    global_writefds = writefds;
-    global_xfds = xfds;
 
     curtime = qemu_get_clock_ms(rt_clock);
 
@@ -461,12 +470,16 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
              * Check TCP sockets
              */
             for (so = slirp->tcb.so_next; so != &slirp->tcb; so = so_next) {
+                int revents;
+
                 so_next = so->so_next;
 
-                /*
-                 * FD_ISSET is meaningless on these sockets
-                 * (and they can crash the program)
-                 */
+                revents = 0;
+                if (so->pollfds_idx != -1) {
+                    revents = g_array_index(pollfds, GPollFD, so->pollfds_idx)
+                                  .revents;
+                }
+
                 if (so->so_state & SS_NOFDREF || so->s == -1) {
                     continue;
                 }
@@ -474,15 +487,15 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
                 /*
                  * Check for URG data
                  * This will soread as well, so no need to
-                 * test for readfds below if this succeeds
+                 * test for G_IO_IN below if this succeeds
                  */
-                if (FD_ISSET(so->s, xfds)) {
+                if (revents & G_IO_PRI) {
                     sorecvoob(so);
                 }
                 /*
                  * Check sockets for reading
                  */
-                else if (FD_ISSET(so->s, readfds)) {
+                else if (revents & (G_IO_IN | G_IO_HUP | G_IO_ERR)) {
                     /*
                      * Check for incoming connections
                      */
@@ -501,7 +514,8 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
                 /*
                  * Check sockets for writing
                  */
-                if (FD_ISSET(so->s, writefds)) {
+                if (!(so->so_state & SS_NOFDREF) &&
+                    (revents & (G_IO_OUT | G_IO_ERR))) {
                     /*
                      * Check for non-blocking, still-connecting sockets
                      */
@@ -585,9 +599,18 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
              * Incoming UDP data isn't buffered either.
              */
             for (so = slirp->udb.so_next; so != &slirp->udb; so = so_next) {
+                int revents;
+
                 so_next = so->so_next;
 
-                if (so->s != -1 && FD_ISSET(so->s, readfds)) {
+                revents = 0;
+                if (so->pollfds_idx != -1) {
+                    revents = g_array_index(pollfds, GPollFD, so->pollfds_idx)
+                                  .revents;
+                }
+
+                if (so->s != -1 &&
+                    (revents & (G_IO_IN | G_IO_HUP | G_IO_ERR))) {
                     sorecvfrom(so);
                 }
             }
@@ -596,9 +619,18 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
              * Check incoming ICMP relies.
              */
             for (so = slirp->icmp.so_next; so != &slirp->icmp; so = so_next) {
+                int revents;
+
                 so_next = so->so_next;
 
-                if (so->s != -1 && FD_ISSET(so->s, readfds)) {
+                revents = 0;
+                if (so->pollfds_idx != -1) {
+                    revents = g_array_index(pollfds, GPollFD, so->pollfds_idx)
+                                  .revents;
+                }
+
+                if (so->s != -1 &&
+                    (revents & (G_IO_IN | G_IO_HUP | G_IO_ERR))) {
                     icmp_receive(so);
                 }
             }
@@ -606,15 +638,6 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
 
         if_start(slirp);
     }
-
-    /* clear global file descriptor sets.
-     * these reside on the stack in vl.c
-     * so they're unusable if we're not in
-     * slirp_select_fill or slirp_select_poll.
-     */
-    global_readfds = NULL;
-    global_writefds = NULL;
-    global_xfds = NULL;
 }
 
 static void arp_input(Slirp *slirp, const uint8_t *pkt, int pkt_len)
