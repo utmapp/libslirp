@@ -309,15 +309,17 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
             /*
              * See if we need a tcp_fasttimo
              */
-            if (time_fasttimo == 0 && so->so_tcpcb->t_flags & TF_DELACK)
+            if (time_fasttimo == 0 && so->so_tcpcb->t_flags & TF_DELACK) {
                 time_fasttimo = curtime; /* Flag when we want a fasttimo */
+            }
 
             /*
              * NOFDREF can include still connecting to local-host,
              * newly socreated() sockets etc. Don't want to select these.
              */
-            if (so->so_state & SS_NOFDREF || so->s == -1)
+            if (so->so_state & SS_NOFDREF || so->s == -1) {
                 continue;
+            }
 
             /*
              * Set for reading sockets which are accepting
@@ -371,8 +373,9 @@ void slirp_select_fill(int *pnfds, fd_set *readfds, fd_set *writefds,
                 if (so->so_expire <= curtime) {
                     udp_detach(so);
                     continue;
-                } else
+                } else {
                     do_slowtimo = 1; /* Let socket expire */
+                }
             }
 
             /*
@@ -464,16 +467,18 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
                  * FD_ISSET is meaningless on these sockets
                  * (and they can crash the program)
                  */
-                if (so->so_state & SS_NOFDREF || so->s == -1)
+                if (so->so_state & SS_NOFDREF || so->s == -1) {
                     continue;
+                }
 
                 /*
                  * Check for URG data
                  * This will soread as well, so no need to
                  * test for readfds below if this succeeds
                  */
-                if (FD_ISSET(so->s, xfds))
+                if (FD_ISSET(so->s, xfds)) {
                     sorecvoob(so);
+                }
                 /*
                  * Check sockets for reading
                  */
@@ -488,8 +493,9 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
                     ret = soread(so);
 
                     /* Output it if we read something */
-                    if (ret > 0)
+                    if (ret > 0) {
                         tcp_output(sototcpcb(so));
+                    }
                 }
 
                 /*
@@ -507,8 +513,9 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
                         if (ret < 0) {
                             /* XXXXX Must fix, zero bytes is a NOP */
                             if (errno == EAGAIN || errno == EWOULDBLOCK ||
-                                errno == EINPROGRESS || errno == ENOTCONN)
+                                errno == EINPROGRESS || errno == ENOTCONN) {
                                 continue;
+                            }
 
                             /* else failed */
                             so->so_state &= SS_PERSISTENT_MASK;
@@ -521,8 +528,9 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
                          */
                         tcp_input((struct mbuf *)NULL, sizeof(struct ip), so);
                         /* continue; */
-                    } else
+                    } else {
                         ret = sowrite(so);
+                    }
                     /*
                      * XXXXX If we wrote something (a lot), there
                      * could be a need for a window update.
@@ -542,8 +550,9 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
                     if (ret < 0) {
                         /* XXX */
                         if (errno == EAGAIN || errno == EWOULDBLOCK ||
-                            errno == EINPROGRESS || errno == ENOTCONN)
+                            errno == EINPROGRESS || errno == ENOTCONN) {
                             continue; /* Still connecting, continue */
+                        }
 
                         /* else failed */
                         so->so_state &= SS_PERSISTENT_MASK;
@@ -555,13 +564,15 @@ void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds,
                         if (ret < 0) {
                             /* XXX */
                             if (errno == EAGAIN || errno == EWOULDBLOCK ||
-                                errno == EINPROGRESS || errno == ENOTCONN)
+                                errno == EINPROGRESS || errno == ENOTCONN) {
                                 continue;
+                            }
                             /* else failed */
                             so->so_state &= SS_PERSISTENT_MASK;
                             so->so_state |= SS_NOFDREF;
-                        } else
+                        } else {
                             so->so_state &= ~SS_ISFCONNECTING;
+                        }
                     }
                     tcp_input((struct mbuf *)NULL, sizeof(struct ip), so);
                 } /* SS_ISFCONNECTING */
@@ -853,11 +864,13 @@ size_t slirp_socket_can_recv(Slirp *slirp, struct in_addr guest_addr,
 
     so = slirp_find_ctl_socket(slirp, guest_addr, guest_port);
 
-    if (!so || so->so_state & SS_NOFDREF)
+    if (!so || so->so_state & SS_NOFDREF) {
         return 0;
+    }
 
-    if (!CONN_CANFRCV(so) || so->so_snd.sb_cc >= (so->so_snd.sb_datalen / 2))
+    if (!CONN_CANFRCV(so) || so->so_snd.sb_cc >= (so->so_snd.sb_datalen / 2)) {
         return 0;
+    }
 
     return sopreprbuf(so, iov, NULL);
 }
