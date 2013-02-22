@@ -403,7 +403,8 @@ void tcp_connect(struct socket *inso)
         /* FACCEPTONCE already have a tcpcb */
         so = inso;
     } else {
-        if ((so = socreate(slirp)) == NULL) {
+        so = socreate(slirp);
+        if (so == NULL) {
             /* If it failed, get rid of the pending connection */
             closesocket(accept(inso->s, (struct sockaddr *)&addr, &addrlen));
             return;
@@ -416,9 +417,10 @@ void tcp_connect(struct socket *inso)
         so->so_lport = inso->so_lport;
     }
 
-    (void)tcp_mss(sototcpcb(so), 0);
+    tcp_mss(sototcpcb(so), 0);
 
-    if ((s = accept(inso->s, (struct sockaddr *)&addr, &addrlen)) < 0) {
+    s = accept(inso->s, (struct sockaddr *)&addr, &addrlen);
+    if (s < 0) {
         tcp_close(sototcpcb(so)); /* This will sofree() as well */
         return;
     }
@@ -441,11 +443,12 @@ void tcp_connect(struct socket *inso)
 
     /* Close the accept() socket, set right state */
     if (inso->so_state & SS_FACCEPTONCE) {
-        closesocket(
-            so->s); /* If we only accept once, close the accept() socket */
-        so->so_state =
-            SS_NOFDREF; /* Don't select it yet, even though we have an FD */
+        /* If we only accept once, close the accept() socket */
+        closesocket(so->s);
+
+        /* Don't select it yet, even though we have an FD */
         /* if it's not FACCEPTONCE, it's already NOFDREF */
+        so->so_state = SS_NOFDREF;
     }
     so->s = s;
     so->so_state |= SS_INCOMING;
