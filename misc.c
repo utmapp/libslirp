@@ -235,8 +235,6 @@ char *strdup(str) const char *str;
 }
 #endif
 
-#include "monitor/monitor.h"
-
 void lprint(const char *format, ...)
 {
     va_list args;
