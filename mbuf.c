@@ -93,14 +93,14 @@ struct mbuf *m_get(Slirp *slirp)
     m->arp_requested = false;
     m->expiration_date = (uint64_t)-1;
 end_error:
-    DEBUG_ARG("m = %lx", (long)m);
+    DEBUG_ARG("m = %p", m);
     return m;
 }
 
 void m_free(struct mbuf *m)
 {
     DEBUG_CALL("m_free");
-    DEBUG_ARG("m = %lx", (long)m);
+    DEBUG_ARG("m = %p", m);
 
     if (m) {
         /* Remove from m_usedlist */
@@ -212,7 +212,7 @@ struct mbuf *dtom(Slirp *slirp, void *dat)
     struct mbuf *m;
 
     DEBUG_CALL("dtom");
-    DEBUG_ARG("dat = %lx", (long)dat);
+    DEBUG_ARG("dat = %p", dat);
 
     /* bug corrected for M_EXT buffers */
     for (m = slirp->m_usedlist.m_next; m != &slirp->m_usedlist; m = m->m_next) {
