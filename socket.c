@@ -15,20 +15,30 @@
 static void sofcantrcvmore(struct socket *so);
 static void sofcantsendmore(struct socket *so);
 
-struct socket *solookup(struct socket *head, struct in_addr laddr, u_int lport,
-                        struct in_addr faddr, u_int fport)
+struct socket *solookup(struct socket **last, struct socket *head,
+                        struct in_addr laddr, u_int lport, struct in_addr faddr,
+                        u_int fport)
 {
-    struct socket *so;
+    struct socket *so = *last;
+
+    /* Optimisation */
+    if (so != head && so->so_lport == lport &&
+        so->so_laddr.s_addr == laddr.s_addr &&
+        (!faddr.s_addr ||
+         (so->so_faddr.s_addr == faddr.s_addr && so->so_fport == fport))) {
+        return so;
+    }
 
     for (so = head->so_next; so != head; so = so->so_next) {
         if (so->so_lport == lport && so->so_laddr.s_addr == laddr.s_addr &&
-            so->so_faddr.s_addr == faddr.s_addr && so->so_fport == fport)
-            break;
+            (!faddr.s_addr ||
+             (so->so_faddr.s_addr == faddr.s_addr && so->so_fport == fport))) {
+            *last = so;
+            return so;
+        }
     }
 
-    if (so == head)
-        return (struct socket *)NULL;
-    return so;
+    return (struct socket *)NULL;
 }
 
 /*

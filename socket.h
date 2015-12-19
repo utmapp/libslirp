@@ -94,8 +94,8 @@ struct socket {
 #define SS_INCOMING \
     0x2000 /* Connection was initiated by a host on the internet */
 
-struct socket *solookup(struct socket *, struct in_addr, u_int, struct in_addr,
-                        u_int);
+struct socket *solookup(struct socket **, struct socket *, struct in_addr,
+                        u_int, struct in_addr, u_int);
 struct socket *socreate(Slirp *);
 void sofree(struct socket *);
 int soread(struct socket *);
