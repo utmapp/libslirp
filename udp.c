@@ -233,8 +233,8 @@ bad:
     m_free(m);
 }
 
-int udp_output2(struct socket *so, struct mbuf *m, struct sockaddr_in *saddr,
-                struct sockaddr_in *daddr, int iptos)
+int udp_output(struct socket *so, struct mbuf *m, struct sockaddr_in *saddr,
+               struct sockaddr_in *daddr, int iptos)
 {
     register struct udpiphdr *ui;
     int error = 0;
@@ -282,30 +282,6 @@ int udp_output2(struct socket *so, struct mbuf *m, struct sockaddr_in *saddr,
     error = ip_output(so, m);
 
     return (error);
-}
-
-int udp_output(struct socket *so, struct mbuf *m, struct sockaddr_in *addr)
-
-{
-    Slirp *slirp = so->slirp;
-    struct sockaddr_in saddr, daddr;
-
-    saddr = *addr;
-    if ((so->so_faddr.s_addr & slirp->vnetwork_mask.s_addr) ==
-        slirp->vnetwork_addr.s_addr) {
-        uint32_t inv_mask = ~slirp->vnetwork_mask.s_addr;
-
-        if ((so->so_faddr.s_addr & inv_mask) == inv_mask) {
-            saddr.sin_addr = slirp->vhost_addr;
-        } else if (addr->sin_addr.s_addr == loopback_addr.s_addr ||
-                   so->so_faddr.s_addr != slirp->vhost_addr.s_addr) {
-            saddr.sin_addr = so->so_faddr;
-        }
-    }
-    daddr.sin_addr = so->so_laddr;
-    daddr.sin_port = so->so_lport;
-
-    return udp_output2(so, m, &saddr, &daddr, so->so_iptos);
 }
 
 int udp_attach(struct socket *so)
@@ -368,14 +344,8 @@ struct socket *udp_listen(Slirp *slirp, uint32_t haddr, u_int hport,
     socket_set_fast_reuse(so->s);
 
     getsockname(so->s, (struct sockaddr *)&addr, &addrlen);
-    so->so_ffamily = AF_INET;
-    so->so_fport = addr.sin_port;
-    if (addr.sin_addr.s_addr == 0 ||
-        addr.sin_addr.s_addr == loopback_addr.s_addr) {
-        so->so_faddr = slirp->vhost_addr;
-    } else {
-        so->so_faddr = addr.sin_addr;
-    }
+    so->fhost.sin = addr;
+    sotranslate_accept(so);
     so->so_lfamily = AF_INET;
     so->so_lport = lport;
     so->so_laddr.s_addr = laddr;
