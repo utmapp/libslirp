@@ -440,8 +440,8 @@ int sowrite(struct socket *so)
  */
 void sorecvfrom(struct socket *so)
 {
-    struct sockaddr_in addr;
-    socklen_t addrlen = sizeof(struct sockaddr_in);
+    struct sockaddr_storage addr;
+    socklen_t addrlen = sizeof(struct sockaddr_storage);
 
     DEBUG_CALL("sorecvfrom");
     DEBUG_ARG("so = %p", so);
@@ -533,7 +533,13 @@ void sorecvfrom(struct socket *so)
              * If this packet was destined for CTL_ADDR,
              * make it look like that's where it came from, done by udp_output
              */
-            udp_output(so, m, &addr);
+            switch (so->so_ffamily) {
+            case AF_INET:
+                udp_output(so, m, (struct sockaddr_in *)&addr);
+                break;
+            default:
+                break;
+            }
         } /* rx error */
     } /* if ping packet */
 }
@@ -625,6 +631,7 @@ struct socket *tcp_listen(Slirp *slirp, uint32_t haddr, u_int hport,
 
     so->so_state &= SS_PERSISTENT_MASK;
     so->so_state |= (SS_FACCEPTCONN | flags);
+    so->so_lfamily = AF_INET;
     so->so_lport = lport; /* Kept in network format */
     so->so_laddr.s_addr = laddr; /* Ditto */
 
@@ -651,6 +658,7 @@ struct socket *tcp_listen(Slirp *slirp, uint32_t haddr, u_int hport,
     qemu_setsockopt(s, SOL_SOCKET, SO_OOBINLINE, &opt, sizeof(int));
 
     getsockname(s, (struct sockaddr *)&addr, &addrlen);
+    so->so_ffamily = AF_INET;
     so->so_fport = addr.sin_port;
     if (addr.sin_addr.s_addr == 0 ||
         addr.sin_addr.s_addr == loopback_addr.s_addr)
