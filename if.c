@@ -25,9 +25,9 @@ static void ifs_remque(struct mbuf *ifm)
 
 void if_init(Slirp *slirp)
 {
-    slirp->if_fastq.ifq_next = slirp->if_fastq.ifq_prev = &slirp->if_fastq;
-    slirp->if_batchq.ifq_next = slirp->if_batchq.ifq_prev = &slirp->if_batchq;
-    slirp->next_m = &slirp->if_batchq;
+    slirp->if_fastq.qh_link = slirp->if_fastq.qh_rlink = &slirp->if_fastq;
+    slirp->if_batchq.qh_link = slirp->if_batchq.qh_rlink = &slirp->if_batchq;
+    slirp->next_m = (struct mbuf *)&slirp->if_batchq;
 }
 
 /*
@@ -71,8 +71,8 @@ void if_output(struct socket *so, struct mbuf *ifm)
      * order)
      * XXX add cache here?
      */
-    for (ifq = slirp->if_batchq.ifq_prev; ifq != &slirp->if_batchq;
-         ifq = ifq->ifq_prev) {
+    for (ifq = (struct mbuf *)slirp->if_batchq.qh_rlink;
+         (struct quehead *)ifq != &slirp->if_batchq; ifq = ifq->ifq_prev) {
         if (so == ifq->ifq_so) {
             /* A match! */
             ifm->ifq_so = so;
@@ -83,7 +83,7 @@ void if_output(struct socket *so, struct mbuf *ifm)
 
     /* No match, check which queue to put it on */
     if (so && (so->so_iptos & IPTOS_LOWDELAY)) {
-        ifq = slirp->if_fastq.ifq_prev;
+        ifq = (struct mbuf *)slirp->if_fastq.qh_rlink;
         on_fastq = 1;
         /*
          * Check if this packet is a part of the last
@@ -95,9 +95,9 @@ void if_output(struct socket *so, struct mbuf *ifm)
             goto diddit;
         }
     } else {
-        ifq = slirp->if_batchq.ifq_prev;
+        ifq = (struct mbuf *)slirp->if_batchq.qh_rlink;
         /* Set next_m if the queue was empty so far */
-        if (slirp->next_m == &slirp->if_batchq) {
+        if ((struct quehead *)slirp->next_m == &slirp->if_batchq) {
             slirp->next_m = ifm;
         }
     }
@@ -162,10 +162,10 @@ void if_start(Slirp *slirp)
     }
     slirp->if_start_busy = true;
 
-    if (slirp->if_fastq.ifq_next != &slirp->if_fastq) {
-        ifm_next = slirp->if_fastq.ifq_next;
+    if (slirp->if_fastq.qh_link != &slirp->if_fastq) {
+        ifm_next = (struct mbuf *)slirp->if_fastq.qh_link;
         next_from_batchq = false;
-    } else if (slirp->next_m != &slirp->if_batchq) {
+    } else if ((struct quehead *)slirp->next_m != &slirp->if_batchq) {
         /* Nothing on fastq, pick up from batchq via next_m */
         ifm_next = slirp->next_m;
         next_from_batchq = true;
@@ -178,12 +178,12 @@ void if_start(Slirp *slirp)
         from_batchq = next_from_batchq;
 
         ifm_next = ifm->ifq_next;
-        if (ifm_next == &slirp->if_fastq) {
+        if ((struct quehead *)ifm_next == &slirp->if_fastq) {
             /* No more packets in fastq, switch to batchq */
             ifm_next = slirp->next_m;
             next_from_batchq = true;
         }
-        if (ifm_next == &slirp->if_batchq) {
+        if ((struct quehead *)ifm_next == &slirp->if_batchq) {
             /* end of batchq */
             ifm_next = NULL;
         }
@@ -214,7 +214,7 @@ void if_start(Slirp *slirp)
                 /* Next packet in fastq is from the same session */
                 ifm_next = next;
                 next_from_batchq = false;
-            } else if (slirp->next_m == &slirp->if_batchq) {
+            } else if ((struct quehead *)slirp->next_m == &slirp->if_batchq) {
                 /* Set next_m and ifm_next if the session packet is now the
                  * only one on batchq */
                 slirp->next_m = ifm_next = next;
