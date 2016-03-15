@@ -583,7 +583,8 @@ void slirp_pollfds_poll(GArray *pollfds, int select_error)
                         /*
                          * Continue tcp_input
                          */
-                        tcp_input((struct mbuf *)NULL, sizeof(struct ip), so);
+                        tcp_input((struct mbuf *)NULL, sizeof(struct ip), so,
+                                  so->so_ffamily);
                         /* continue; */
                     } else {
                         ret = sowrite(so);
@@ -631,7 +632,8 @@ void slirp_pollfds_poll(GArray *pollfds, int select_error)
                             so->so_state &= ~SS_ISFCONNECTING;
                         }
                     }
-                    tcp_input((struct mbuf *)NULL, sizeof(struct ip), so);
+                    tcp_input((struct mbuf *)NULL, sizeof(struct ip), so,
+                              so->so_ffamily);
                 } /* SS_ISFCONNECTING */
 #endif
             }

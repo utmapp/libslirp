@@ -329,7 +329,7 @@ void ip6_input(struct mbuf *);
 int ip6_output(struct socket *, struct mbuf *, int fast);
 
 /* tcp_input.c */
-void tcp_input(register struct mbuf *, int, struct socket *);
+void tcp_input(register struct mbuf *, int, struct socket *, unsigned short af);
 int tcp_mss(register struct tcpcb *, u_int);
 
 /* tcp_output.c */
@@ -341,7 +341,7 @@ void tcp_init(Slirp *);
 void tcp_cleanup(Slirp *);
 void tcp_template(struct tcpcb *);
 void tcp_respond(struct tcpcb *, register struct tcpiphdr *,
-                 register struct mbuf *, tcp_seq, tcp_seq, int);
+                 register struct mbuf *, tcp_seq, tcp_seq, int, unsigned short);
 struct tcpcb *tcp_newtcpcb(struct socket *);
 struct tcpcb *tcp_close(register struct tcpcb *);
 void tcp_sockclosed(struct tcpcb *);
