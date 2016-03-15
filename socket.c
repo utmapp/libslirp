@@ -472,7 +472,7 @@ void sorecvfrom(struct socket *so)
 
             DEBUG_MISC(
                 (dfd, " udp icmp rx errno = %d-%s\n", errno, strerror(errno)));
-            icmp_error(so->so_m, ICMP_UNREACH, code, 0, strerror(errno));
+            icmp_send_error(so->so_m, ICMP_UNREACH, code, 0, strerror(errno));
         } else {
             icmp_reflect(so->so_m);
             so->so_m = NULL; /* Don't m_free() it again! */
@@ -522,7 +522,7 @@ void sorecvfrom(struct socket *so)
                 code = ICMP_UNREACH_NET;
 
             DEBUG_MISC((dfd, " rx error, tx icmp ICMP_UNREACH:%i\n", code));
-            icmp_error(so->so_m, ICMP_UNREACH, code, 0, strerror(errno));
+            icmp_send_error(so->so_m, ICMP_UNREACH, code, 0, strerror(errno));
             m_free(m);
         } else {
             /*
