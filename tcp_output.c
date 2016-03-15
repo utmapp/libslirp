@@ -461,7 +461,6 @@ send:
 
         ip->ip_ttl = IPDEFTTL;
         ip->ip_tos = so->so_iptos;
-
         error = ip_output(so, m);
         break;
 
