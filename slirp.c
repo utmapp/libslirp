@@ -199,14 +199,14 @@ static void slirp_init_once(void)
 static void slirp_state_save(QEMUFile *f, void *opaque);
 static int slirp_state_load(QEMUFile *f, void *opaque, int version_id);
 
-Slirp *slirp_init(int restricted, struct in_addr vnetwork,
+Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
                   struct in_addr vnetmask, struct in_addr vhost,
-                  struct in6_addr vprefix_addr6, uint8_t vprefix_len,
-                  struct in6_addr vhost6, const char *vhostname,
-                  const char *tftp_path, const char *bootfile,
-                  struct in_addr vdhcp_start, struct in_addr vnameserver,
-                  struct in6_addr vnameserver6, const char **vdnssearch,
-                  void *opaque)
+                  bool in6_enabled, struct in6_addr vprefix_addr6,
+                  uint8_t vprefix_len, struct in6_addr vhost6,
+                  const char *vhostname, const char *tftp_path,
+                  const char *bootfile, struct in_addr vdhcp_start,
+                  struct in_addr vnameserver, struct in6_addr vnameserver6,
+                  const char **vdnssearch, void *opaque)
 {
     Slirp *slirp = g_malloc0(sizeof(Slirp));
 
@@ -214,6 +214,9 @@ Slirp *slirp_init(int restricted, struct in_addr vnetwork,
 
     slirp->grand = g_rand_new();
     slirp->restricted = restricted;
+
+    slirp->in_enabled = in_enabled;
+    slirp->in6_enabled = in6_enabled;
 
     if_init(slirp);
     ip_init(slirp);
@@ -687,6 +690,10 @@ static void arp_input(Slirp *slirp, const uint8_t *pkt, int pkt_len)
     struct arphdr *rah = (struct arphdr *)(arp_reply + ETH_HLEN);
     int ar_op;
     struct ex_list *ex_ptr;
+
+    if (!slirp->in_enabled) {
+        return;
+    }
 
     ar_op = ntohs(ah->ar_op);
     switch (ar_op) {
