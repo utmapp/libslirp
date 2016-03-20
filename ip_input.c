@@ -82,7 +82,7 @@ void ip_input(struct mbuf *m)
     DEBUG_ARG("m_len = %d", m->m_len);
 
     if (m->m_len < sizeof(struct ip)) {
-        return;
+        goto bad;
     }
 
     ip = mtod(m, struct ip *);
