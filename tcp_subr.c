@@ -621,6 +621,7 @@ int tcp_emu(struct socket *so, struct mbuf *m)
     switch (so->so_emu) {
         int x, i;
 
+        /* TODO: IPv6 */
     case EMU_IDENT:
         /*
          * Identification protocol as per rfc-1413
@@ -956,6 +957,7 @@ int tcp_ctl(struct socket *so)
     DEBUG_CALL("tcp_ctl");
     DEBUG_ARG("so = %p", so);
 
+    /* TODO: IPv6 */
     if (so->so_faddr.s_addr != slirp->vhost_addr.s_addr) {
         /* Check if it's pty_exec */
         for (ex_ptr = slirp->guestfwd_list; ex_ptr; ex_ptr = ex_ptr->ex_next) {
