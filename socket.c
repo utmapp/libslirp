@@ -188,7 +188,8 @@ int soread(struct socket *so)
                         nn, errno, strerror(errno)));
             sofcantrcvmore(so);
 
-            if (err == ECONNRESET || err == ENOTCONN || err == EPIPE) {
+            if (err == ECONNRESET || err == ECONNREFUSED || err == ENOTCONN ||
+                err == EPIPE) {
                 tcp_drop(sototcpcb(so), err);
             } else {
                 tcp_sockclosed(sototcpcb(so));
