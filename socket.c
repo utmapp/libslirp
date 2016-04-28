@@ -635,7 +635,7 @@ int sosendto(struct socket *so, struct mbuf *m)
 
     /* Don't care what port we get */
     ret = sendto(so->s, m->m_data, m->m_len, 0, (struct sockaddr *)&addr,
-                 sizeof(addr));
+                 sockaddr_size(&addr));
     if (ret < 0)
         return -1;
 
