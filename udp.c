@@ -326,6 +326,10 @@ struct socket *udp_listen(Slirp *slirp, uint32_t haddr, u_int hport,
         return NULL;
     }
     so->s = qemu_socket(AF_INET, SOCK_DGRAM, 0);
+    if (so->s < 0) {
+        sofree(so);
+        return NULL;
+    }
     so->so_expire = curtime + SO_EXPIRE;
     insque(so, &slirp->udb);
 
