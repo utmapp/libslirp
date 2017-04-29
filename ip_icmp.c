@@ -153,7 +153,8 @@ void icmp_input(struct mbuf *m, int hlen)
     switch (icp->icmp_type) {
     case ICMP_ECHO:
         ip->ip_len += hlen; /* since ip_input subtracts this */
-        if (ip->ip_dst.s_addr == slirp->vhost_addr.s_addr) {
+        if (ip->ip_dst.s_addr == slirp->vhost_addr.s_addr ||
+            ip->ip_dst.s_addr == slirp->vnameserver_addr.s_addr) {
             icmp_reflect(m);
         } else if (slirp->restricted) {
             goto freeit;
