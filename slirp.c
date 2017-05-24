@@ -271,6 +271,11 @@ static void slirp_init_once(void)
 static void slirp_state_save(QEMUFile *f, void *opaque);
 static int slirp_state_load(QEMUFile *f, void *opaque, int version_id);
 
+static SaveVMHandlers savevm_slirp_state = {
+    .save_state = slirp_state_save,
+    .load_state = slirp_state_load,
+};
+
 Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
                   struct in_addr vnetmask, struct in_addr vhost,
                   bool in6_enabled, struct in6_addr vprefix_addr6,
@@ -319,8 +324,7 @@ Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
 
     slirp->opaque = opaque;
 
-    register_savevm(NULL, "slirp", 0, 4, slirp_state_save, slirp_state_load,
-                    slirp);
+    register_savevm_live(NULL, "slirp", 0, 4, &savevm_slirp_state, slirp);
 
     QTAILQ_INSERT_TAIL(&slirp_instances, slirp, entry);
 
