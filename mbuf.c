@@ -145,7 +145,7 @@ void m_cat(struct mbuf *m, struct mbuf *n)
 /* make m 'size' bytes large from m_data */
 void m_inc(struct mbuf *m, int size)
 {
-    int datasize;
+    int gapsize;
 
     /* some compilers throw up on gotos.  This one we can fake. */
     if (M_ROOM(m) > size) {
@@ -153,17 +153,17 @@ void m_inc(struct mbuf *m, int size)
     }
 
     if (m->m_flags & M_EXT) {
-        datasize = m->m_data - m->m_ext;
-        m->m_ext = g_realloc(m->m_ext, size + datasize);
+        gapsize = m->m_data - m->m_ext;
+        m->m_ext = g_realloc(m->m_ext, size + gapsize);
     } else {
-        datasize = m->m_data - m->m_dat;
-        m->m_ext = g_malloc(size + datasize);
+        gapsize = m->m_data - m->m_dat;
+        m->m_ext = g_malloc(size + gapsize);
         memcpy(m->m_ext, m->m_dat, m->m_size);
         m->m_flags |= M_EXT;
     }
 
-    m->m_data = m->m_ext + datasize;
-    m->m_size = size + datasize;
+    m->m_data = m->m_ext + gapsize;
+    m->m_size = size + gapsize;
 }
 
 
