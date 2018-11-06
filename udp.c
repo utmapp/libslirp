@@ -169,9 +169,6 @@ void udp_input(register struct mbuf *m, int iphlen)
          * create one
          */
         so = socreate(slirp);
-        if (!so) {
-            goto bad;
-        }
         if (udp_attach(so, AF_INET) == -1) {
             DEBUG_MISC(
                 (dfd, " udp_attach errno = %d-%s\n", errno, strerror(errno)));
@@ -322,9 +319,6 @@ struct socket *udp_listen(Slirp *slirp, uint32_t haddr, u_int hport,
     socklen_t addrlen = sizeof(struct sockaddr_in);
 
     so = socreate(slirp);
-    if (!so) {
-        return NULL;
-    }
     so->s = qemu_socket(AF_INET, SOCK_DGRAM, 0);
     if (so->s < 0) {
         sofree(so);
