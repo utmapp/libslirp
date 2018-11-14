@@ -6,6 +6,7 @@
 #ifndef SLIRP_IP6_H
 #define SLIRP_IP6_H
 
+#include <glib.h>
 #include "net/eth.h"
 
 #define ALLNODES_MULTICAST \
@@ -174,7 +175,7 @@ static inline void in6_compute_ethaddr(struct in6_addr ip,
  * Structure of an internet header, naked of options.
  */
 struct ip6 {
-#ifdef HOST_WORDS_BIGENDIAN
+#if G_BYTE_ORDER == G_BIG_ENDIAN
     uint32_t ip_v : 4, /* version */
         ip_tc_hi : 4, /* traffic class */
         ip_tc_lo : 4, ip_fl_hi : 4, /* flow label */
