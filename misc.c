@@ -114,7 +114,7 @@ static int slirp_socketpair_with_oob(int sv[2])
     return 0;
 
 err:
-    error_report("Error: slirp_socketpair(): %s", strerror(errno));
+    g_critical("slirp_socketpair(): %s", strerror(errno));
     if (s >= 0) {
         closesocket(s);
     }
