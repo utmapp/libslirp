@@ -418,7 +418,7 @@ int tcp_fconnect(struct socket *so, unsigned short af)
         qemu_setsockopt(s, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
 
         addr = so->fhost.ss;
-        DEBUG_CALL(" connect()ing")
+        DEBUG_CALL(" connect()ing");
         sotranslate_out(so, &addr);
 
         /* We don't care what port we get */
@@ -955,7 +955,7 @@ int tcp_ctl(struct socket *so)
                     so->chardev = ex_ptr->ex_chardev;
                     return 1;
                 }
-                DEBUG_MISC((dfd, " executing %s\n", ex_ptr->ex_exec));
+                DEBUG_MISC(" executing %s\n", ex_ptr->ex_exec);
                 return fork_exec(so, ex_ptr->ex_exec);
             }
         }
