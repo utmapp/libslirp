@@ -5,7 +5,16 @@
 
 typedef struct Slirp Slirp;
 
-typedef void (*slirp_output)(void *opaque, const uint8_t *pkt, int pkt_len);
+/*
+ * Callbacks from slirp
+ *
+ * The opaque parameter comes from the opaque parameter given to slirp_init().
+ */
+typedef struct SlirpCb {
+    /* Send an ethernet frame to the guest network.  */
+    void (*output)(void *opaque, const uint8_t *pkt, int pkt_len);
+} SlirpCb;
+
 
 Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
                   struct in_addr vnetmask, struct in_addr vhost,
@@ -15,7 +24,8 @@ Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
                   const char *tftp_path, const char *bootfile,
                   struct in_addr vdhcp_start, struct in_addr vnameserver,
                   struct in6_addr vnameserver6, const char **vdnssearch,
-                  const char *vdomainname, slirp_output output, void *opaque);
+                  const char *vdomainname, const SlirpCb *callbacks,
+                  void *opaque);
 void slirp_cleanup(Slirp *slirp);
 
 void slirp_pollfds_fill(GArray *pollfds, uint32_t *timeout);
