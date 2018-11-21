@@ -163,9 +163,7 @@ static int get_dns_addr_resolv_conf(int af, void *pdns_addr, void *cached_addr,
     if (!f)
         return -1;
 
-#ifdef DEBUG
-    fprintf(stderr, "IP address of your DNS(s): ");
-#endif
+    DEBUG_MISC("IP address of your DNS(s): ");
     while (fgets(buff, 512, f) != NULL) {
         if (sscanf(buff, "nameserver%*[ \t]%256s", buff2) == 1) {
             char *c = strchr(buff2, '%');
@@ -187,15 +185,12 @@ static int get_dns_addr_resolv_conf(int af, void *pdns_addr, void *cached_addr,
                     *scope_id = if_index;
                 }
                 *cached_time = curtime;
+            } else {
+                DEBUG_MISC(", ");
             }
-#ifdef DEBUG
-            else
-                fprintf(stderr, ", ");
-#endif
+
             if (++found > 3) {
-#ifdef DEBUG
-                fprintf(stderr, "(more)");
-#endif
+                DEBUG_MISC("(more)");
                 break;
             }
 #ifdef DEBUG
@@ -205,7 +200,7 @@ static int get_dns_addr_resolv_conf(int af, void *pdns_addr, void *cached_addr,
                 if (!res) {
                     res = "(string conversion error)";
                 }
-                fprintf(stderr, "%s", res);
+                DEBUG_MISC("%s", res);
             }
 #endif
         }
