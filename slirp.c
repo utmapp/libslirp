@@ -383,7 +383,8 @@ static void slirp_update_timeout(Slirp *slirp, uint32_t *timeout)
     *timeout = t;
 }
 
-void slirp_pollfds_fill(Slirp *slirp, GArray *pollfds, uint32_t *timeout)
+void slirp_pollfds_fill(Slirp *slirp, uint32_t *timeout,
+                        SlirpAddPollCb add_poll, void *opaque)
 {
     struct socket *so, *so_next;
 
@@ -424,12 +425,8 @@ void slirp_pollfds_fill(Slirp *slirp, GArray *pollfds, uint32_t *timeout)
          * Set for reading sockets which are accepting
          */
         if (so->so_state & SS_FACCEPTCONN) {
-            GPollFD pfd = {
-                .fd = so->s,
-                .events = G_IO_IN | G_IO_HUP | G_IO_ERR,
-            };
-            so->pollfds_idx = pollfds->len;
-            g_array_append_val(pollfds, pfd);
+            so->pollfds_idx = add_poll(
+                so->s, SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR, opaque);
             continue;
         }
 
@@ -437,12 +434,8 @@ void slirp_pollfds_fill(Slirp *slirp, GArray *pollfds, uint32_t *timeout)
          * Set for writing sockets which are connecting
          */
         if (so->so_state & SS_ISFCONNECTING) {
-            GPollFD pfd = {
-                .fd = so->s,
-                .events = G_IO_OUT | G_IO_ERR,
-            };
-            so->pollfds_idx = pollfds->len;
-            g_array_append_val(pollfds, pfd);
+            so->pollfds_idx =
+                add_poll(so->s, SLIRP_POLL_OUT | SLIRP_POLL_ERR, opaque);
             continue;
         }
 
@@ -451,7 +444,7 @@ void slirp_pollfds_fill(Slirp *slirp, GArray *pollfds, uint32_t *timeout)
          * we have something to send
          */
         if (CONN_CANFSEND(so) && so->so_rcv.sb_cc) {
-            events |= G_IO_OUT | G_IO_ERR;
+            events |= SLIRP_POLL_OUT | SLIRP_POLL_ERR;
         }
 
         /*
@@ -460,16 +453,12 @@ void slirp_pollfds_fill(Slirp *slirp, GArray *pollfds, uint32_t *timeout)
          */
         if (CONN_CANFRCV(so) &&
             (so->so_snd.sb_cc < (so->so_snd.sb_datalen / 2))) {
-            events |= G_IO_IN | G_IO_HUP | G_IO_ERR | G_IO_PRI;
+            events |= SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR |
+                      SLIRP_POLL_PRI;
         }
 
         if (events) {
-            GPollFD pfd = {
-                .fd = so->s,
-                .events = events,
-            };
-            so->pollfds_idx = pollfds->len;
-            g_array_append_val(pollfds, pfd);
+            so->pollfds_idx = add_poll(so->s, events, opaque);
         }
     }
 
@@ -504,12 +493,8 @@ void slirp_pollfds_fill(Slirp *slirp, GArray *pollfds, uint32_t *timeout)
          * (XXX <= 4 ?)
          */
         if ((so->so_state & SS_ISFCONNECTED) && so->so_queued <= 4) {
-            GPollFD pfd = {
-                .fd = so->s,
-                .events = G_IO_IN | G_IO_HUP | G_IO_ERR,
-            };
-            so->pollfds_idx = pollfds->len;
-            g_array_append_val(pollfds, pfd);
+            so->pollfds_idx = add_poll(
+                so->s, SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR, opaque);
         }
     }
 
@@ -534,19 +519,16 @@ void slirp_pollfds_fill(Slirp *slirp, GArray *pollfds, uint32_t *timeout)
         }
 
         if (so->so_state & SS_ISFCONNECTED) {
-            GPollFD pfd = {
-                .fd = so->s,
-                .events = G_IO_IN | G_IO_HUP | G_IO_ERR,
-            };
-            so->pollfds_idx = pollfds->len;
-            g_array_append_val(pollfds, pfd);
+            so->pollfds_idx = add_poll(
+                so->s, SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR, opaque);
         }
     }
 
     slirp_update_timeout(slirp, timeout);
 }
 
-void slirp_pollfds_poll(Slirp *slirp, GArray *pollfds, int select_error)
+void slirp_pollfds_poll(Slirp *slirp, int select_error,
+                        SlirpGetREventsCb get_revents, void *opaque)
 {
     struct socket *so, *so_next;
     int ret;
@@ -582,8 +564,7 @@ void slirp_pollfds_poll(Slirp *slirp, GArray *pollfds, int select_error)
 
             revents = 0;
             if (so->pollfds_idx != -1) {
-                revents =
-                    g_array_index(pollfds, GPollFD, so->pollfds_idx).revents;
+                revents = get_revents(so->pollfds_idx, opaque);
             }
 
             if (so->so_state & SS_NOFDREF || so->s == -1) {
@@ -593,9 +574,9 @@ void slirp_pollfds_poll(Slirp *slirp, GArray *pollfds, int select_error)
             /*
              * Check for URG data
              * This will soread as well, so no need to
-             * test for G_IO_IN below if this succeeds
+             * test for SLIRP_POLL_IN below if this succeeds
              */
-            if (revents & G_IO_PRI) {
+            if (revents & SLIRP_POLL_PRI) {
                 ret = sorecvoob(so);
                 if (ret < 0) {
                     /* Socket error might have resulted in the socket being
@@ -606,7 +587,8 @@ void slirp_pollfds_poll(Slirp *slirp, GArray *pollfds, int select_error)
             /*
              * Check sockets for reading
              */
-            else if (revents & (G_IO_IN | G_IO_HUP | G_IO_ERR)) {
+            else if (revents &
+                     (SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR)) {
                 /*
                  * Check for incoming connections
                  */
@@ -631,7 +613,7 @@ void slirp_pollfds_poll(Slirp *slirp, GArray *pollfds, int select_error)
              * Check sockets for writing
              */
             if (!(so->so_state & SS_NOFDREF) &&
-                (revents & (G_IO_OUT | G_IO_ERR))) {
+                (revents & (SLIRP_POLL_OUT | SLIRP_POLL_ERR))) {
                 /*
                  * Check for non-blocking, still-connecting sockets
                  */
@@ -683,11 +665,11 @@ void slirp_pollfds_poll(Slirp *slirp, GArray *pollfds, int select_error)
 
             revents = 0;
             if (so->pollfds_idx != -1) {
-                revents =
-                    g_array_index(pollfds, GPollFD, so->pollfds_idx).revents;
+                revents = get_revents(so->pollfds_idx, opaque);
             }
 
-            if (so->s != -1 && (revents & (G_IO_IN | G_IO_HUP | G_IO_ERR))) {
+            if (so->s != -1 &&
+                (revents & (SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR))) {
                 sorecvfrom(so);
             }
         }
@@ -702,11 +684,11 @@ void slirp_pollfds_poll(Slirp *slirp, GArray *pollfds, int select_error)
 
             revents = 0;
             if (so->pollfds_idx != -1) {
-                revents =
-                    g_array_index(pollfds, GPollFD, so->pollfds_idx).revents;
+                revents = get_revents(so->pollfds_idx, opaque);
             }
 
-            if (so->s != -1 && (revents & (G_IO_IN | G_IO_HUP | G_IO_ERR))) {
+            if (so->s != -1 &&
+                (revents & (SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR))) {
                 icmp_receive(so);
             }
         }
