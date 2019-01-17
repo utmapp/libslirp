@@ -90,7 +90,7 @@ void udp_input(register struct mbuf *m, int iphlen)
      * Get IP and UDP header together in first mbuf.
      */
     ip = mtod(m, struct ip *);
-    uh = (struct udphdr *)((caddr_t)ip + iphlen);
+    uh = (struct udphdr *)((char *)ip + iphlen);
 
     /*
      * Make mbuf data length reflect UDP length.
@@ -310,8 +310,8 @@ static uint8_t udp_tos(struct socket *so)
     return 0;
 }
 
-struct socket *udp_listen(Slirp *slirp, uint32_t haddr, u_int hport,
-                          uint32_t laddr, u_int lport, int flags)
+struct socket *udp_listen(Slirp *slirp, uint32_t haddr, unsigned hport,
+                          uint32_t laddr, unsigned lport, int flags)
 {
     struct sockaddr_in addr;
     struct socket *so;

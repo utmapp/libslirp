@@ -77,7 +77,7 @@
         }                                                              \
     }
 
-static void tcp_dooptions(struct tcpcb *tp, u_char *cp, int cnt,
+static void tcp_dooptions(struct tcpcb *tp, uint8_t *cp, int cnt,
                           struct tcpiphdr *ti);
 static void tcp_xmit_timer(register struct tcpcb *tp, int rtt);
 
@@ -198,7 +198,7 @@ void tcp_input(struct mbuf *m, int iphlen, struct socket *inso,
     struct ip save_ip, *ip;
     struct ip6 save_ip6, *ip6;
     register struct tcpiphdr *ti;
-    caddr_t optp = NULL;
+    char *optp = NULL;
     int optlen = 0;
     int len, tlen, off;
     register struct tcpcb *tp = NULL;
@@ -206,7 +206,7 @@ void tcp_input(struct mbuf *m, int iphlen, struct socket *inso,
     struct socket *so = NULL;
     int todrop, acked, ourfinisacked, needoutput = 0;
     int iss = 0;
-    u_long tiwin;
+    uint32_t tiwin;
     int ret;
     struct sockaddr_storage lhost, fhost;
     struct sockaddr_in *lhost4, *fhost4;
@@ -327,7 +327,7 @@ void tcp_input(struct mbuf *m, int iphlen, struct socket *inso,
     ti->ti_len = tlen;
     if (off > sizeof(struct tcphdr)) {
         optlen = off - sizeof(struct tcphdr);
-        optp = mtod(m, caddr_t) + sizeof(struct tcpiphdr);
+        optp = mtod(m, char *) + sizeof(struct tcpiphdr);
     }
     tiflags = ti->ti_flags;
 
@@ -470,7 +470,7 @@ findso:
      * else do it below (after getting remote address).
      */
     if (optp && tp->t_state != TCPS_LISTEN)
-        tcp_dooptions(tp, (u_char *)optp, optlen, ti);
+        tcp_dooptions(tp, (uint8_t *)optp, optlen, ti);
 
     /*
      * Header prediction: check for the two common cases
@@ -722,7 +722,7 @@ findso:
         tcp_template(tp);
 
         if (optp)
-            tcp_dooptions(tp, (u_char *)optp, optlen, ti);
+            tcp_dooptions(tp, (uint8_t *)optp, optlen, ti);
 
         if (iss)
             tp->iss = iss;
@@ -1033,7 +1033,7 @@ findso:
                     tp->t_dupacks = 0;
                 else if (++tp->t_dupacks == TCPREXMTTHRESH) {
                     tcp_seq onxt = tp->snd_nxt;
-                    u_int win =
+                    unsigned win =
                         MIN(tp->snd_wnd, tp->snd_cwnd) / 2 / tp->t_maxseg;
 
                     if (win < 2)
@@ -1100,8 +1100,8 @@ findso:
          * (maxseg^2 / cwnd per packet).
          */
         {
-            register u_int cw = tp->snd_cwnd;
-            register u_int incr = tp->t_maxseg;
+            register unsigned cw = tp->snd_cwnd;
+            register unsigned incr = tp->t_maxseg;
 
             if (cw > tp->snd_ssthresh)
                 incr = incr * incr / cw;
@@ -1371,7 +1371,7 @@ drop:
     m_free(m);
 }
 
-static void tcp_dooptions(struct tcpcb *tp, u_char *cp, int cnt,
+static void tcp_dooptions(struct tcpcb *tp, uint8_t *cp, int cnt,
                           struct tcpiphdr *ti)
 {
     uint16_t mss;
@@ -1499,7 +1499,7 @@ static void tcp_xmit_timer(register struct tcpcb *tp, int rtt)
  * parameters from pre-set or cached values in the routing entry.
  */
 
-int tcp_mss(struct tcpcb *tp, u_int offer)
+int tcp_mss(struct tcpcb *tp, unsigned offer)
 {
     struct socket *so = tp->t_socket;
     int mss;
