@@ -16,7 +16,7 @@ void sbfree(struct sbuf *sb)
     free(sb->sb_data);
 }
 
-void sbdrop(struct sbuf *sb, int num)
+bool sbdrop(struct sbuf *sb, int num)
 {
     int limit = sb->sb_datalen / 2;
 
@@ -32,8 +32,10 @@ void sbdrop(struct sbuf *sb, int num)
         sb->sb_rptr -= sb->sb_datalen;
 
     if (sb->sb_cc < limit && sb->sb_cc + num >= limit) {
-        qemu_notify_event();
+        return true;
     }
+
+    return false;
 }
 
 void sbreserve(struct sbuf *sb, int size)
