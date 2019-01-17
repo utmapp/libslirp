@@ -8,9 +8,10 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
-#define DBG_CALL 0x1
-#define DBG_MISC 0x2
-#define DBG_ERROR 0x4
+#define DBG_CALL (1 << 0)
+#define DBG_MISC (1 << 1)
+#define DBG_ERROR (1 << 2)
+#define DBG_TFTP (1 << 3)
 
 extern int slirp_debug;
 
@@ -40,6 +41,13 @@ extern int slirp_debug;
         if (G_UNLIKELY(slirp_debug & DBG_ERROR)) { \
             g_debug(fmt, ##__VA_ARGS__);           \
         }                                          \
+    } while (0)
+
+#define DEBUG_TFTP(fmt, ...)                      \
+    do {                                          \
+        if (G_UNLIKELY(slirp_debug & DBG_TFTP)) { \
+            g_debug(fmt, ##__VA_ARGS__);          \
+        }                                         \
     } while (0)
 
 #endif /* DEBUG_H_ */
