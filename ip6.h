@@ -7,6 +7,7 @@
 #define SLIRP_IP6_H
 
 #include <glib.h>
+#include <string.h>
 
 #define ALLNODES_MULTICAST \
     {                      \
