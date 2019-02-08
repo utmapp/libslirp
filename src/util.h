@@ -72,6 +72,9 @@ struct iovec {
 #include <sys/uio.h>
 #endif
 
+#define stringify(s) tostring(s)
+#define tostring(s) #s
+
 #define SCALE_MS 1000000
 
 #define ETH_ALEN 6

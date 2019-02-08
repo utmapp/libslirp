@@ -86,11 +86,19 @@ sources = [
   'src/udp.c',
   'src/udp6.c',
   'src/util.c',
+  'src/version.c',
   'src/vmstate.c',
 ]
 
 mapfile = 'src/libslirp.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
+
+configure_file(
+  input : 'src/libslirp-version.h.in',
+  output : 'libslirp-version.h',
+  install_dir : join_paths(get_option('includedir'), 'slirp'),
+  configuration : conf
+)
 
 lib = shared_library('slirp', sources,
   soversion : lt_current,

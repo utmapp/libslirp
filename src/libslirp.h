@@ -14,6 +14,8 @@
 #include <arpa/inet.h>
 #endif
 
+#include "libslirp-version.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -107,6 +109,8 @@ int slirp_state_load(Slirp *s, int version_id, SlirpReadCb read_cb,
                      void *opaque);
 
 int slirp_state_version(void);
+
+const char *slirp_version_string(void);
 
 #ifdef __cplusplus
 } /* extern "C" */
