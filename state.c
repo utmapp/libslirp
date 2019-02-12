@@ -21,13 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "qemu/osdep.h"
-
 #include "slirp.h"
+#include "vmstate.h"
 #include "state.h"
-#include "migration/vmstate.h"
-#include "migration/qemu-file-types.h"
-#include "migration/register.h"
+#include "stream.h"
 
 static int slirp_tcp_post_load(void *opaque, int version)
 {
@@ -176,7 +173,7 @@ static int slirp_socket_pre_load(void *opaque)
 #else
 /* Win uses u_long rather than uint32_t - but it's still 32bits long */
 #define VMSTATE_SIN4_ADDR(f, s, t) \
-    VMSTATE_SINGLE_TEST(f, s, t, 0, vmstate_info_uint32, u_long)
+    VMSTATE_SINGLE_TEST(f, s, t, 0, slirp_vmstate_info_uint32, u_long)
 #endif
 
 /* The OS provided ss_family field isn't that portable; it's size
@@ -314,10 +311,13 @@ static const VMStateDescription vmstate_slirp = {
                                 VMSTATE_END_OF_LIST() }
 };
 
-static void slirp_state_save(QEMUFile *f, void *opaque)
+void slirp_state_save(Slirp *slirp, SlirpWriteCb write_cb, void *opaque)
 {
-    Slirp *slirp = opaque;
     struct gfwd_list *ex_ptr;
+    SlirpOStream f = {
+        .write_cb = write_cb,
+        .opaque = opaque,
+    };
 
     for (ex_ptr = slirp->guestfwd_list; ex_ptr; ex_ptr = ex_ptr->ex_next)
         if (ex_ptr->write_cb) {
@@ -328,25 +328,30 @@ static void slirp_state_save(QEMUFile *f, void *opaque)
                 continue;
             }
 
-            qemu_put_byte(f, 42);
-            vmstate_save_state(f, &vmstate_slirp_socket, so, NULL);
+            slirp_ostream_write_u8(&f, 42);
+            slirp_vmstate_save_state(&f, &vmstate_slirp_socket, so);
         }
-    qemu_put_byte(f, 0);
+    slirp_ostream_write_u8(&f, 0);
 
-    vmstate_save_state(f, &vmstate_slirp, slirp, NULL);
+    slirp_vmstate_save_state(&f, &vmstate_slirp, slirp);
 }
 
 
-static int slirp_state_load(QEMUFile *f, void *opaque, int version_id)
+int slirp_state_load(Slirp *slirp, int version_id, SlirpReadCb read_cb,
+                     void *opaque)
 {
-    Slirp *slirp = opaque;
     struct gfwd_list *ex_ptr;
+    SlirpIStream f = {
+        .read_cb = read_cb,
+        .opaque = opaque,
+    };
 
-    while (qemu_get_byte(f)) {
+    while (slirp_istream_read_u8(&f)) {
         int ret;
         struct socket *so = socreate(slirp);
 
-        ret = vmstate_load_state(f, &vmstate_slirp_socket, so, version_id);
+        ret =
+            slirp_vmstate_load_state(&f, &vmstate_slirp_socket, so, version_id);
         if (ret < 0) {
             return ret;
         }
@@ -367,20 +372,10 @@ static int slirp_state_load(QEMUFile *f, void *opaque, int version_id)
         }
     }
 
-    return vmstate_load_state(f, &vmstate_slirp, slirp, version_id);
+    return slirp_vmstate_load_state(&f, &vmstate_slirp, slirp, version_id);
 }
 
-void slirp_state_register(Slirp *slirp)
+int slirp_state_version(void)
 {
-    static SaveVMHandlers savevm_slirp_state = {
-        .save_state = slirp_state_save,
-        .load_state = slirp_state_load,
-    };
-
-    register_savevm_live(NULL, "slirp", 0, 4, &savevm_slirp_state, slirp);
-}
-
-void slirp_state_unregister(Slirp *slirp)
-{
-    unregister_savevm(NULL, "slirp", slirp);
+    return 4;
 }
