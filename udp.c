@@ -287,7 +287,7 @@ int udp_attach(struct socket *so, unsigned short af)
 void udp_detach(struct socket *so)
 {
     so->slirp->cb->unregister_poll_fd(so->s, so->slirp->opaque);
-    slirp_closesocket(so->s);
+    closesocket(so->s);
     sofree(so);
 }
 

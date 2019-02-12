@@ -338,7 +338,7 @@ struct tcpcb *tcp_close(struct tcpcb *tp)
     if (so == slirp->tcp_last_so)
         slirp->tcp_last_so = &slirp->tcb;
     so->slirp->cb->unregister_poll_fd(so->s, so->slirp->opaque);
-    slirp_closesocket(so->s);
+    closesocket(so->s);
     sbfree(&so->so_rcv);
     sbfree(&so->so_snd);
     sofree(so);
@@ -414,9 +414,9 @@ int tcp_fconnect(struct socket *so, unsigned short af)
         so->slirp->cb->register_poll_fd(so->s, so->slirp->opaque);
         slirp_socket_set_fast_reuse(s);
         opt = 1;
-        slirp_setsockopt(s, SOL_SOCKET, SO_OOBINLINE, &opt, sizeof(opt));
+        setsockopt(s, SOL_SOCKET, SO_OOBINLINE, &opt, sizeof(opt));
         opt = 1;
-        slirp_setsockopt(s, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+        setsockopt(s, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
 
         addr = so->fhost.ss;
         DEBUG_CALL(" connect()ing");
@@ -487,7 +487,7 @@ void tcp_connect(struct socket *inso)
     so->slirp->cb->register_poll_fd(so->s, so->slirp->opaque);
     slirp_socket_set_fast_reuse(s);
     opt = 1;
-    slirp_setsockopt(s, SOL_SOCKET, SO_OOBINLINE, &opt, sizeof(int));
+    setsockopt(s, SOL_SOCKET, SO_OOBINLINE, &opt, sizeof(int));
     slirp_socket_set_nodelay(s);
 
     so->fhost.ss = addr;
@@ -497,7 +497,7 @@ void tcp_connect(struct socket *inso)
     if (inso->so_state & SS_FACCEPTONCE) {
         /* If we only accept once, close the accept() socket */
         so->slirp->cb->unregister_poll_fd(so->s, so->slirp->opaque);
-        slirp_closesocket(so->s);
+        closesocket(so->s);
 
         /* Don't select it yet, even though we have an FD */
         /* if it's not FACCEPTONCE, it's already NOFDREF */
