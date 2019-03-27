@@ -2,6 +2,9 @@ ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUILD_DIR ?= .
 
 LIBSLIRP = $(BUILD_DIR)/libslirp.a
+SLIRP_MAJOR_VERSION = 4
+SLIRP_MINOR_VERSION = 0
+SLIRP_MICRO_VERSION = 0
 
 all: $(LIBSLIRP)
 
@@ -19,12 +22,22 @@ override CFLAGS +=					\
 	-MMD -MP
 override LDFLAGS += $(shell $(PKG_CONFIG) --libs glib-2.0)
 
+$(BUILD_DIR)/src/libslirp-version.h:
+	@$(MKDIR_P) $(dir $@)
+	$(call quiet-command,cat $(ROOT_DIR)/src/libslirp-version.h.in | \
+		sed 's/@SLIRP_MAJOR_VERSION@/$(SLIRP_MAJOR_VERSION)/' | \
+		sed 's/@SLIRP_MINOR_VERSION@/$(SLIRP_MINOR_VERSION)/' | \
+		sed 's/@SLIRP_MICRO_VERSION@/$(SLIRP_MICRO_VERSION)/' \
+	> $@,"GEN","$@")
+
+$(OBJS): $(BUILD_DIR)/src/libslirp-version.h
+
 $(LIBSLIRP): $(OBJS)
 
 .PHONY: clean
 
 clean:
-	rm -r $(OBJS) $(DEPS) $(LIBSLIRP)
+	rm -r $(OBJS) $(DEPS) $(LIBSLIRP) $(BUILD_DIR)/src/libslirp-version.h
 
 $(BUILD_DIR)/src/%.o: $(ROOT_DIR)/src/%.c
 	@$(MKDIR_P) $(dir $@)
