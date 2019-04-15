@@ -168,6 +168,7 @@ size_t sopreprbuf(struct socket *so, struct iovec *iov, int *np)
 int soread(struct socket *so)
 {
     int n, nn;
+    size_t buf_len;
     struct sbuf *sb = &so->so_snd;
     struct iovec iov[2];
 
@@ -178,7 +179,8 @@ int soread(struct socket *so)
      * No need to check if there's enough room to read.
      * soread wouldn't have been called if there weren't
      */
-    sopreprbuf(so, iov, &n);
+    buf_len = sopreprbuf(so, iov, &n);
+    assert(buf_len != 0);
 
     nn = recv(so->s, iov[0].iov_base, iov[0].iov_len, 0);
     if (nn <= 0) {
@@ -253,6 +255,7 @@ int soreadbuf(struct socket *so, const char *buf, int size)
      * No need to check if there's enough room to read.
      * soread wouldn't have been called if there weren't
      */
+    assert(size > 0);
     if (sopreprbuf(so, iov, &n) < size)
         goto err;
 
