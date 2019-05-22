@@ -1,4 +1,4 @@
-project('slirp', 'c',
+project('libslirp', 'c',
   version : '4.0.0',
   license : 'BSD-3-Clause',
   default_options : ['warning_level=1', 'c_std=gnu99']
