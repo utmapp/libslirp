@@ -270,7 +270,10 @@ static void slirp_init_once(void)
 Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
 {
     Slirp *slirp;
+
     g_return_val_if_fail(cfg != NULL, NULL);
+    g_return_val_if_fail(cfg->version >= SLIRP_CONFIG_VERSION_MIN, NULL);
+    g_return_val_if_fail(cfg->version <= SLIRP_CONFIG_VERSION_MAX, NULL);
     g_return_val_if_fail(cfg->if_mtu >= IF_MTU_MIN || cfg->if_mtu == 0, NULL);
     g_return_val_if_fail(cfg->if_mtu <= IF_MTU_MAX, NULL);
     g_return_val_if_fail(cfg->if_mru >= IF_MRU_MIN || cfg->if_mru == 0, NULL);
@@ -335,6 +338,7 @@ Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
 {
     SlirpConfig cfg;
     memset(&cfg, 0, sizeof(cfg));
+    cfg.version = 1;
     cfg.restricted = restricted;
     cfg.in_enabled = in_enabled;
     cfg.vnetwork = vnetwork;
