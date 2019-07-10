@@ -144,6 +144,9 @@ struct Slirp {
     int restricted;
     struct gfwd_list *guestfwd_list;
 
+    int if_mtu;
+    int if_mru;
+
     /* mbuf states */
     struct quehead m_freelist;
     struct quehead m_usedlist;

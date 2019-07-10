@@ -271,6 +271,10 @@ Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
 {
     Slirp *slirp;
     g_return_val_if_fail(cfg != NULL, NULL);
+    g_return_val_if_fail(cfg->if_mtu >= IF_MTU_MIN || cfg->if_mtu == 0, NULL);
+    g_return_val_if_fail(cfg->if_mtu <= IF_MTU_MAX, NULL);
+    g_return_val_if_fail(cfg->if_mru >= IF_MRU_MIN || cfg->if_mru == 0, NULL);
+    g_return_val_if_fail(cfg->if_mru <= IF_MRU_MAX, NULL);
 
     slirp = g_malloc0(sizeof(Slirp));
 
@@ -311,6 +315,8 @@ Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
     if (cfg->vdnssearch) {
         translate_dnssearch(slirp, cfg->vdnssearch);
     }
+    slirp->if_mtu = cfg->if_mtu == 0 ? IF_MTU_DEFAULT : cfg->if_mtu;
+    slirp->if_mru = cfg->if_mru == 0 ? IF_MRU_DEFAULT : cfg->if_mru;
 
     return slirp;
 }
@@ -917,7 +923,7 @@ static int if_encap6(Slirp *slirp, struct mbuf *ifm, struct ethhdr *eh,
  */
 int if_encap(Slirp *slirp, struct mbuf *ifm)
 {
-    uint8_t buf[1600];
+    uint8_t buf[IF_MTU_MAX + 100];
     struct ethhdr *eh = (struct ethhdr *)buf;
     uint8_t ethaddr[ETH_ALEN];
     const struct ip *iph = (const struct ip *)ifm->m_data;

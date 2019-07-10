@@ -85,6 +85,10 @@ typedef struct SlirpConfig {
     struct in6_addr vnameserver6;
     const char **vdnssearch;
     const char *vdomainname;
+    /* Default: IF_MTU_DEFAULT */
+    size_t if_mtu;
+    /* Default: IF_MRU_DEFAULT */
+    size_t if_mru;
 } SlirpConfig;
 
 Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks,
