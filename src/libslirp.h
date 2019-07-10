@@ -66,7 +66,30 @@ typedef struct SlirpCb {
     void (*notify)(void *opaque);
 } SlirpCb;
 
+typedef struct SlirpConfig {
+    int restricted;
+    bool in_enabled;
+    struct in_addr vnetwork;
+    struct in_addr vnetmask;
+    struct in_addr vhost;
+    bool in6_enabled;
+    struct in6_addr vprefix_addr6;
+    uint8_t vprefix_len;
+    struct in6_addr vhost6;
+    const char *vhostname;
+    const char *tftp_server_name;
+    const char *tftp_path;
+    const char *bootfile;
+    struct in_addr vdhcp_start;
+    struct in_addr vnameserver;
+    struct in6_addr vnameserver6;
+    const char **vdnssearch;
+    const char *vdomainname;
+} SlirpConfig;
 
+Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks,
+                 void *opaque);
+/* slirp_init is deprecated in favor of slirp_new */
 Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
                   struct in_addr vnetmask, struct in_addr vhost,
                   bool in6_enabled, struct in6_addr vprefix_addr6,

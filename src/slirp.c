@@ -267,6 +267,54 @@ static void slirp_init_once(void)
     }
 }
 
+Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
+{
+    Slirp *slirp;
+    g_return_val_if_fail(cfg != NULL, NULL);
+
+    slirp = g_malloc0(sizeof(Slirp));
+
+    slirp_init_once();
+
+    slirp->opaque = opaque;
+    slirp->cb = callbacks;
+    slirp->grand = g_rand_new();
+    slirp->restricted = cfg->restricted;
+
+    slirp->in_enabled = cfg->in_enabled;
+    slirp->in6_enabled = cfg->in6_enabled;
+
+    if_init(slirp);
+    ip_init(slirp);
+    ip6_init(slirp);
+
+    m_init(slirp);
+
+    slirp->vnetwork_addr = cfg->vnetwork;
+    slirp->vnetwork_mask = cfg->vnetmask;
+    slirp->vhost_addr = cfg->vhost;
+    slirp->vprefix_addr6 = cfg->vprefix_addr6;
+    slirp->vprefix_len = cfg->vprefix_len;
+    slirp->vhost_addr6 = cfg->vhost6;
+    if (cfg->vhostname) {
+        slirp_pstrcpy(slirp->client_hostname, sizeof(slirp->client_hostname),
+                      cfg->vhostname);
+    }
+    slirp->tftp_prefix = g_strdup(cfg->tftp_path);
+    slirp->bootp_filename = g_strdup(cfg->bootfile);
+    slirp->vdomainname = g_strdup(cfg->vdomainname);
+    slirp->vdhcp_startaddr = cfg->vdhcp_start;
+    slirp->vnameserver_addr = cfg->vnameserver;
+    slirp->vnameserver_addr6 = cfg->vnameserver6;
+    slirp->tftp_server_name = g_strdup(cfg->tftp_server_name);
+
+    if (cfg->vdnssearch) {
+        translate_dnssearch(slirp, cfg->vdnssearch);
+    }
+
+    return slirp;
+}
+
 Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
                   struct in_addr vnetmask, struct in_addr vhost,
                   bool in6_enabled, struct in6_addr vprefix_addr6,
@@ -278,47 +326,27 @@ Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
                   const char *vdomainname, const SlirpCb *callbacks,
                   void *opaque)
 {
-    Slirp *slirp = g_malloc0(sizeof(Slirp));
-
-    slirp_init_once();
-
-    slirp->opaque = opaque;
-    slirp->cb = callbacks;
-    slirp->grand = g_rand_new();
-    slirp->restricted = restricted;
-
-    slirp->in_enabled = in_enabled;
-    slirp->in6_enabled = in6_enabled;
-
-    if_init(slirp);
-    ip_init(slirp);
-    ip6_init(slirp);
-
-    m_init(slirp);
-
-    slirp->vnetwork_addr = vnetwork;
-    slirp->vnetwork_mask = vnetmask;
-    slirp->vhost_addr = vhost;
-    slirp->vprefix_addr6 = vprefix_addr6;
-    slirp->vprefix_len = vprefix_len;
-    slirp->vhost_addr6 = vhost6;
-    if (vhostname) {
-        slirp_pstrcpy(slirp->client_hostname, sizeof(slirp->client_hostname),
-                      vhostname);
-    }
-    slirp->tftp_prefix = g_strdup(tftp_path);
-    slirp->bootp_filename = g_strdup(bootfile);
-    slirp->vdomainname = g_strdup(vdomainname);
-    slirp->vdhcp_startaddr = vdhcp_start;
-    slirp->vnameserver_addr = vnameserver;
-    slirp->vnameserver_addr6 = vnameserver6;
-    slirp->tftp_server_name = g_strdup(tftp_server_name);
-
-    if (vdnssearch) {
-        translate_dnssearch(slirp, vdnssearch);
-    }
-
-    return slirp;
+    SlirpConfig cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    cfg.restricted = restricted;
+    cfg.in_enabled = in_enabled;
+    cfg.vnetwork = vnetwork;
+    cfg.vnetmask = vnetmask;
+    cfg.vhost = vhost;
+    cfg.in6_enabled = in6_enabled;
+    cfg.vprefix_addr6 = vprefix_addr6;
+    cfg.vprefix_len = vprefix_len;
+    cfg.vhost6 = vhost6;
+    cfg.vhostname = vhostname;
+    cfg.tftp_server_name = tftp_server_name;
+    cfg.tftp_path = tftp_path;
+    cfg.bootfile = bootfile;
+    cfg.vdhcp_start = vdhcp_start;
+    cfg.vnameserver = vnameserver;
+    cfg.vnameserver6 = vnameserver6;
+    cfg.vdnssearch = vdnssearch;
+    cfg.vdomainname = vdomainname;
+    return slirp_new(&cfg, callbacks, opaque);
 }
 
 void slirp_cleanup(Slirp *slirp)
