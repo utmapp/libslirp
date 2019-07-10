@@ -89,6 +89,8 @@ typedef struct SlirpConfig {
     size_t if_mtu;
     /* Default: IF_MRU_DEFAULT */
     size_t if_mru;
+    /* Prohibit connecting to 127.0.0.1:* */
+    bool disable_host_loopback;
 } SlirpConfig;
 
 Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks,

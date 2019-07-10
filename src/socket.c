@@ -657,7 +657,9 @@ int sosendto(struct socket *so, struct mbuf *m)
 
     addr = so->fhost.ss;
     DEBUG_CALL(" sendto()ing)");
-    sotranslate_out(so, &addr);
+    if (sotranslate_out(so, &addr) < 0) {
+        return -1;
+    }
 
     /* Don't care what port we get */
     ret = sendto(so->s, m->m_data, m->m_len, 0, (struct sockaddr *)&addr,
@@ -818,8 +820,9 @@ void sofwdrain(struct socket *so)
 /*
  * Translate addr in host addr when it is a virtual address
  */
-void sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
+int sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
 {
+    int rc = 0;
     Slirp *slirp = so->slirp;
     struct sockaddr_in *sin = (struct sockaddr_in *)addr;
     struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)addr;
@@ -830,18 +833,19 @@ void sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
             slirp->vnetwork_addr.s_addr) {
             /* It's an alias */
             if (so->so_faddr.s_addr == slirp->vnameserver_addr.s_addr) {
-                if (get_dns_addr(&sin->sin_addr) < 0) {
-                    sin->sin_addr = loopback_addr;
+                if (get_dns_addr(&sin->sin_addr) >= 0) {
+                    goto ret;
                 }
+            }
+            if (slirp->disable_host_loopback) {
+                rc = -1;
+                errno = EPERM;
+                goto ret;
             } else {
                 sin->sin_addr = loopback_addr;
             }
         }
-
-        DEBUG_MISC(" addr.sin_port=%d, addr.sin_addr.s_addr=%.16s",
-                   ntohs(sin->sin_port), inet_ntoa(sin->sin_addr));
         break;
-
     case AF_INET6:
         if (in6_equal_net(&so->so_faddr6, &slirp->vprefix_addr6,
                           slirp->vprefix_len)) {
@@ -849,9 +853,13 @@ void sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
                 uint32_t scope_id;
                 if (get_dns6_addr(&sin6->sin6_addr, &scope_id) >= 0) {
                     sin6->sin6_scope_id = scope_id;
-                } else {
-                    sin6->sin6_addr = in6addr_loopback;
+                    goto ret;
                 }
+            }
+            if (slirp->disable_host_loopback) {
+                rc = -1;
+                errno = EPERM;
+                goto ret;
             } else {
                 sin6->sin6_addr = in6addr_loopback;
             }
@@ -861,6 +869,8 @@ void sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
     default:
         break;
     }
+ret:
+    return rc;
 }
 
 void sotranslate_in(struct socket *so, struct sockaddr_storage *addr)
