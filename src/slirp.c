@@ -294,7 +294,6 @@ Slirp *slirp_init(int restricted, bool in_enabled, struct in_addr vnetwork,
     ip_init(slirp);
     ip6_init(slirp);
 
-    /* Initialise mbufs *after* setting the MTU */
     m_init(slirp);
 
     slirp->vnetwork_addr = vnetwork;
