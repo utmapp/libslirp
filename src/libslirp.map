@@ -7,6 +7,7 @@ global:
     slirp_connection_info;
     slirp_init;
     slirp_input;
+    slirp_new;
     slirp_pollfds_fill;
     slirp_pollfds_poll;
     slirp_remove_hostfwd;
