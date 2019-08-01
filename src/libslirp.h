@@ -70,7 +70,7 @@ typedef struct SlirpCb {
 #define SLIRP_CONFIG_VERSION_MAX 1
 
 typedef struct SlirpConfig {
-    /* Version must be already provided */
+    /* Version must be provided */
     uint32_t version;
     /*
      * Fields introduced in SlirpConfig version 1 begin
