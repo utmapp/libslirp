@@ -556,15 +556,12 @@ static const struct tos_t tcptos[] = {
     { 0, 0, 0, 0 }
 };
 
-static struct emu_t *tcpemu = NULL;
-
 /*
  * Return TOS according to the above table
  */
 uint8_t tcp_tos(struct socket *so)
 {
     int i = 0;
-    struct emu_t *emup;
 
     while (tcptos[i].tos) {
         if ((tcptos[i].fport && (ntohs(so->so_fport) == tcptos[i].fport)) ||
@@ -574,16 +571,6 @@ uint8_t tcp_tos(struct socket *so)
         }
         i++;
     }
-
-    /* Nope, lets see if there's a user-added one */
-    for (emup = tcpemu; emup; emup = emup->next) {
-        if ((emup->fport && (ntohs(so->so_fport) == emup->fport)) ||
-            (emup->lport && (ntohs(so->so_lport) == emup->lport))) {
-            so->so_emu = emup->emu;
-            return emup->tos;
-        }
-    }
-
     return 0;
 }
 
