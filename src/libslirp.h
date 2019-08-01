@@ -100,6 +100,11 @@ typedef struct SlirpConfig {
     /* Prohibit connecting to 127.0.0.1:* */
     bool disable_host_loopback;
     /*
+     * Enable emulation code (*warning*: this code isn't safe, it is not
+     * recommended to enable it)
+     */
+    bool enable_emu;
+    /*
      * Fields introduced in SlirpConfig version 2 begin
      */
 } SlirpConfig;
