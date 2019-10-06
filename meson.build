@@ -100,7 +100,7 @@ configure_file(
   configuration : conf
 )
 
-lib = shared_library('slirp', sources,
+lib = library('slirp', sources,
   soversion : lt_current,
   version : lt_version,
   c_args : cargs,
@@ -109,6 +109,10 @@ lib = shared_library('slirp', sources,
   dependencies : [glib_dep, platform_deps],
   install : true
 )
+
+libslirp_dep = declare_dependency(
+  include_directories: include_directories('.', 'src'),
+  link_with: lib)
 
 install_headers(['src/libslirp.h'], subdir : 'slirp')
 
