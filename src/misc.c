@@ -170,7 +170,6 @@ int fork_exec(struct socket *so, const char *ex)
     GError *err = NULL;
     gint argc = 0;
     gchar **argv = NULL;
-    gboolean ret;
     int opt, sp[2];
 
     DEBUG_CALL("fork_exec");
@@ -181,8 +180,7 @@ int fork_exec(struct socket *so, const char *ex)
         return 0;
     }
 
-    err = g_shell_parse_argv(ex, &argc, &argv, &err);
-    if (!err) {
+    if (!g_shell_parse_argv(ex, &argc, &argv, &err)) {
         g_critical("fork_exec invalid command: %s\nerror: %s", ex, err->message);
         g_error_free(err);
         return 0;
