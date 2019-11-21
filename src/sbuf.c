@@ -169,7 +169,7 @@ void sbcopy(struct sbuf *sb, int off, int len, char *to)
     char *from;
 
     g_assert(len >= 0);
-    g_assert(len <= sb->sb_cc);
+    g_assert(len + off <= sb->sb_cc);
 
     from = sb->sb_rptr + off;
     if (from >= sb->sb_data + sb->sb_datalen)
