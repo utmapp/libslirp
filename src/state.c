@@ -107,9 +107,6 @@ static int sbuf_tmp_post_load(void *opaque, int version)
     /* Allocate the buffer space used by the field after the tmp */
     sbreserve(tmp->parent, tmp->parent->sb_datalen);
 
-    if (tmp->parent->sb_datalen != requested_len) {
-        return -ENOMEM;
-    }
     if (tmp->woff >= requested_len || tmp->roff >= requested_len) {
         g_critical("invalid sbuf offsets r/w=%u/%u len=%u", tmp->roff,
                    tmp->woff, requested_len);
