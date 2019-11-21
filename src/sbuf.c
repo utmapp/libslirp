@@ -16,12 +16,10 @@ bool sbdrop(struct sbuf *sb, int num)
 {
     int limit = sb->sb_datalen / 2;
 
-    /*
-     * We can only drop how much we have
-     * This should never succeed
-     */
+    g_warn_if_fail(num <= sb->sb_cc);
     if (num > sb->sb_cc)
         num = sb->sb_cc;
+
     sb->sb_cc -= num;
     sb->sb_rptr += num;
     if (sb->sb_rptr >= sb->sb_data + sb->sb_datalen)
