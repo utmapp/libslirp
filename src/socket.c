@@ -95,7 +95,7 @@ void sofree(struct socket *so)
         remque(so); /* crashes if so is not in a queue */
 
     if (so->so_tcpcb) {
-        free(so->so_tcpcb);
+        g_free(so->so_tcpcb);
     }
     g_free(so);
 }

@@ -9,7 +9,7 @@ static void sbappendsb(struct sbuf *sb, struct mbuf *m);
 
 void sbfree(struct sbuf *sb)
 {
-    free(sb->sb_data);
+    g_free(sb->sb_data);
 }
 
 bool sbdrop(struct sbuf *sb, int num)
@@ -37,24 +37,15 @@ void sbreserve(struct sbuf *sb, int size)
     if (sb->sb_data) {
         /* Already alloced, realloc if necessary */
         if (sb->sb_datalen != size) {
-            char *new = realloc(sb->sb_data, size);
+            char *new = g_realloc(sb->sb_data, size);
             sb->sb_cc = 0;
-            if (new) {
-                sb->sb_data = sb->sb_wptr = sb->sb_rptr = new;
-                sb->sb_datalen = size;
-            } else {
-                free(sb->sb_data);
-                sb->sb_data = sb->sb_wptr = sb->sb_rptr = NULL;
-                sb->sb_datalen = 0;
-            }
+            sb->sb_data = sb->sb_wptr = sb->sb_rptr = new;
+            sb->sb_datalen = size;
         }
     } else {
-        sb->sb_wptr = sb->sb_rptr = sb->sb_data = (char *)malloc(size);
+        sb->sb_wptr = sb->sb_rptr = sb->sb_data = g_malloc(size);
         sb->sb_cc = 0;
-        if (sb->sb_wptr)
-            sb->sb_datalen = size;
-        else
-            sb->sb_datalen = 0;
+        sb->sb_datalen = size;
     }
 }
 

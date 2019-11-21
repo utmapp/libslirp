@@ -255,11 +255,7 @@ struct tcpcb *tcp_newtcpcb(struct socket *so)
 {
     register struct tcpcb *tp;
 
-    tp = (struct tcpcb *)malloc(sizeof(*tp));
-    if (tp == NULL)
-        return ((struct tcpcb *)0);
-
-    memset((char *)tp, 0, sizeof(struct tcpcb));
+    tp = g_new0(struct tcpcb, 1);
     tp->seg_next = tp->seg_prev = (struct tcpiphdr *)tp;
     /*
      * 40: length of IPv4 header (20) + TCP header (20)
@@ -336,7 +332,7 @@ struct tcpcb *tcp_close(struct tcpcb *tp)
         remque(tcpiphdr2qlink(tcpiphdr_prev(t)));
         m_free(m);
     }
-    free(tp);
+    g_free(tp);
     so->so_tcpcb = NULL;
     /* clobber input socket cache if we're closing the cached connection */
     if (so == slirp->tcp_last_so)
