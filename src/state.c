@@ -159,9 +159,8 @@ static bool slirp_family_inet(void *opaque, int version_id)
 static int slirp_socket_pre_load(void *opaque)
 {
     struct socket *so = opaque;
-    if (tcp_attach(so) < 0) {
-        return -ENOMEM;
-    }
+
+    tcp_attach(so);
     /* Older versions don't load these fields */
     so->so_ffamily = AF_INET;
     so->so_lfamily = AF_INET;

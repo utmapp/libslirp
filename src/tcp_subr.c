@@ -470,10 +470,7 @@ void tcp_connect(struct socket *inso)
         so = inso;
     } else {
         so = socreate(slirp);
-        if (tcp_attach(so) < 0) {
-            g_free(so); /* NOT sofree */
-            return;
-        }
+        tcp_attach(so);
         so->lhost = inso->lhost;
         so->so_ffamily = inso->so_ffamily;
     }
@@ -524,14 +521,10 @@ void tcp_connect(struct socket *inso)
 /*
  * Attach a TCPCB to a socket.
  */
-int tcp_attach(struct socket *so)
+void tcp_attach(struct socket *so)
 {
-    if ((so->so_tcpcb = tcp_newtcpcb(so)) == NULL)
-        return -1;
-
+    so->so_tcpcb = tcp_newtcpcb(so);
     insque(so, &so->slirp->tcb);
-
-    return 0;
 }
 
 /*
