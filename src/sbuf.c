@@ -12,7 +12,7 @@ void sbfree(struct sbuf *sb)
     g_free(sb->sb_data);
 }
 
-bool sbdrop(struct sbuf *sb, int num)
+bool sbdrop(struct sbuf *sb, size_t num)
 {
     int limit = sb->sb_datalen / 2;
 
@@ -32,7 +32,7 @@ bool sbdrop(struct sbuf *sb, int num)
     return false;
 }
 
-void sbreserve(struct sbuf *sb, int size)
+void sbreserve(struct sbuf *sb, size_t size)
 {
     if (sb->sb_data) {
         /* Already alloced, realloc if necessary */
@@ -153,11 +153,10 @@ static void sbappendsb(struct sbuf *sb, struct mbuf *m)
  * Don't update the sbuf rptr, this will be
  * done in sbdrop when the data is acked
  */
-void sbcopy(struct sbuf *sb, int off, int len, char *to)
+void sbcopy(struct sbuf *sb, size_t off, size_t len, char *to)
 {
     char *from;
 
-    g_assert(len >= 0);
     g_assert(len + off <= sb->sb_cc);
 
     from = sb->sb_rptr + off;
