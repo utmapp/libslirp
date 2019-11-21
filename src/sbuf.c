@@ -34,19 +34,9 @@ bool sbdrop(struct sbuf *sb, size_t num)
 
 void sbreserve(struct sbuf *sb, size_t size)
 {
-    if (sb->sb_data) {
-        /* Already alloced, realloc if necessary */
-        if (sb->sb_datalen != size) {
-            char *new = g_realloc(sb->sb_data, size);
-            sb->sb_cc = 0;
-            sb->sb_data = sb->sb_wptr = sb->sb_rptr = new;
-            sb->sb_datalen = size;
-        }
-    } else {
-        sb->sb_wptr = sb->sb_rptr = sb->sb_data = g_malloc(size);
-        sb->sb_cc = 0;
-        sb->sb_datalen = size;
-    }
+    sb->sb_wptr = sb->sb_rptr = sb->sb_data = g_realloc(sb->sb_data, size);
+    sb->sb_cc = 0;
+    sb->sb_datalen = size;
 }
 
 /*
