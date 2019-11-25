@@ -377,8 +377,8 @@ void tcp_sockclosed(struct tcpcb *tp)
     case TCPS_LISTEN:
     case TCPS_SYN_SENT:
         tp->t_state = TCPS_CLOSED;
-        tp = tcp_close(tp);
-        break;
+        tcp_close(tp);
+        return;
 
     case TCPS_SYN_RECEIVED:
     case TCPS_ESTABLISHED:
