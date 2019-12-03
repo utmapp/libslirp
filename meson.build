@@ -32,10 +32,10 @@ conf.set('SLIRP_MICRO_VERSION', micro_version)
 # - If the interface is the same as the previous version, but bugs are
 #   fixed, change:
 #      REVISION += 1
-lt_current = '0'
-lt_revision = '0'
-lt_age = '0'
-lt_version = '@0@.@1@.@2@'.format(lt_current, lt_age, lt_revision)
+lt_current = 0
+lt_revision = 0
+lt_age = 0
+lt_version = '@0@.@1@.@2@'.format(lt_current - lt_age, lt_age, lt_revision)
 
 host_system = host_machine.system()
 
@@ -101,7 +101,6 @@ configure_file(
 )
 
 lib = library('slirp', sources,
-  soversion : lt_current,
   version : lt_version,
   c_args : cargs,
   link_args : vflag,
