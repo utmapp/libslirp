@@ -50,6 +50,20 @@ struct gfwd_list *add_exec(struct gfwd_list **ex_ptr, const char *cmdline,
     return f;
 }
 
+int remove_guestfwd(struct gfwd_list **ex_ptr, struct in_addr addr, int port)
+{
+    for (; *ex_ptr != NULL; ex_ptr = &((*ex_ptr)->ex_next)) {
+        struct gfwd_list *f = *ex_ptr;
+        if (f->ex_addr.s_addr == addr.s_addr && f->ex_fport == port) {
+            *ex_ptr = f->ex_next;
+            g_free(f->ex_exec);
+            g_free(f);
+            return 0;
+        }
+    }
+    return -1;
+}
+
 static int slirp_socketpair_with_oob(int sv[2])
 {
     struct sockaddr_in addr = {

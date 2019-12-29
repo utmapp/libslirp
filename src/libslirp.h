@@ -140,6 +140,9 @@ int slirp_add_exec(Slirp *slirp, const char *cmdline,
                    struct in_addr *guest_addr, int guest_port);
 int slirp_add_guestfwd(Slirp *slirp, SlirpWriteCb write_cb, void *opaque,
                        struct in_addr *guest_addr, int guest_port);
+/* remove entries added by slirp_add_exec or slirp_add_guestfwd */
+int slirp_remove_guestfwd(Slirp *slirp, struct in_addr guest_addr,
+                          int guest_port);
 
 char *slirp_connection_info(Slirp *slirp);
 

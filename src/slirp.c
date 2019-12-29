@@ -1061,6 +1061,13 @@ int slirp_add_guestfwd(Slirp *slirp, SlirpWriteCb write_cb, void *opaque,
     return 0;
 }
 
+int slirp_remove_guestfwd(Slirp *slirp, struct in_addr guest_addr,
+                          int guest_port)
+{
+    return remove_guestfwd(&slirp->guestfwd_list, guest_addr,
+                           htons(guest_port));
+}
+
 ssize_t slirp_send(struct socket *so, const void *buf, size_t len, int flags)
 {
     if (so->s == -1 && so->guestfwd) {

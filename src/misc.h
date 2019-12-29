@@ -60,4 +60,6 @@ struct gfwd_list *add_guestfwd(struct gfwd_list **ex_ptr, SlirpWriteCb write_cb,
 struct gfwd_list *add_exec(struct gfwd_list **ex_ptr, const char *cmdline,
                            struct in_addr addr, int port);
 
+int remove_guestfwd(struct gfwd_list **ex_ptr, struct in_addr addr, int port);
+
 #endif
