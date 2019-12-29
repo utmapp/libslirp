@@ -4,6 +4,9 @@
  */
 
 #include "slirp.h"
+#ifdef G_OS_UNIX
+#include <sys/un.h>
+#endif
 
 inline void insque(void *a, void *b)
 {
@@ -46,6 +49,16 @@ struct gfwd_list *add_exec(struct gfwd_list **ex_ptr, const char *cmdline,
     struct gfwd_list *f = add_guestfwd(ex_ptr, NULL, NULL, addr, port);
 
     f->ex_exec = g_strdup(cmdline);
+
+    return f;
+}
+
+struct gfwd_list *add_unix(struct gfwd_list **ex_ptr, const char *unixsock,
+                           struct in_addr addr, int port)
+{
+    struct gfwd_list *f = add_guestfwd(ex_ptr, NULL, NULL, addr, port);
+
+    f->ex_unix = g_strdup(unixsock);
 
     return f;
 }
@@ -222,6 +235,45 @@ int fork_exec(struct socket *so, const char *ex)
     slirp_set_nonblock(so->s);
     so->slirp->cb->register_poll_fd(so->s, so->slirp->opaque);
     return 1;
+}
+
+int open_unix(struct socket *so, const char *unixpath)
+{
+#ifdef G_OS_UNIX
+    struct sockaddr_un sa;
+    int s;
+
+    DEBUG_CALL("open_unix");
+    DEBUG_ARG("so = %p", so);
+    DEBUG_ARG("unixpath = %s", unixpath);
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sun_family = AF_UNIX;
+    if (g_strlcpy(sa.sun_path, unixpath, sizeof(sa.sun_path)) >= sizeof(sa.sun_path)) {
+        g_critical("Bad unix path: %s", unixpath);
+        return 0;
+    }
+
+    s = slirp_socket(PF_UNIX, SOCK_STREAM, 0);
+    if (s < 0) {
+        g_critical("open_unix(): %s", strerror(errno));
+        return 0;
+    }
+
+    if (connect(s, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+        g_critical("open_unix(): %s", strerror(errno));
+        closesocket(s);
+        return 0;
+    }
+
+    so->s = s;
+    slirp_set_nonblock(so->s);
+    so->slirp->cb->register_poll_fd(so->s, so->slirp->opaque);
+
+    return 1;
+#else
+    g_assert_not_reached();
+#endif
 }
 
 char *slirp_connection_info(Slirp *slirp)
