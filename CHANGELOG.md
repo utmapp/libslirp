@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+ - New API function `slirp_add_unix`: add a forward rule to a Unix socket.
  - New API function `slirp_remove_guestfwd`: remove a forward rule previously
-   added by `slirp_add_exec` or `slirp_add_guestfwd`
+   added by `slirp_add_exec`, `slirp_add_unix` or `slirp_add_guestfwd`
 
 ### Changed
 

@@ -368,6 +368,7 @@ void slirp_cleanup(Slirp *slirp)
     for (e = slirp->guestfwd_list; e; e = next) {
         next = e->ex_next;
         g_free(e->ex_exec);
+        g_free(e->ex_unix);
         g_free(e);
     }
 
@@ -1047,6 +1048,22 @@ int slirp_add_exec(Slirp *slirp, const char *cmdline,
 
     add_exec(&slirp->guestfwd_list, cmdline, *guest_addr, htons(guest_port));
     return 0;
+}
+
+int slirp_add_unix(Slirp *slirp, const char *unixsock,
+                   struct in_addr *guest_addr, int guest_port)
+{
+#ifdef G_OS_UNIX
+    if (!check_guestfwd(slirp, guest_addr, guest_port)) {
+        return -1;
+    }
+
+    add_unix(&slirp->guestfwd_list, unixsock, *guest_addr, htons(guest_port));
+    return 0;
+#else
+    g_warn_if_reached();
+    return -1;
+#endif
 }
 
 int slirp_add_guestfwd(Slirp *slirp, SlirpWriteCb write_cb, void *opaque,
