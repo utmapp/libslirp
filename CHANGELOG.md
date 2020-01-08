@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
  - ncsi: fix checksum OOB memory access
+ - `tcp_emu()`: fix OOB accesses
 
 ## [4.1.0] - 2019-12-02
 
