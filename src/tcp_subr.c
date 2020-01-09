@@ -763,7 +763,8 @@ int tcp_emu(struct socket *so, struct mbuf *m)
                 return 1;
             }
             m->m_len = bptr - m->m_data; /* Adjust length */
-            m->m_len += snprintf(bptr, m->m_size, "DCC CHAT chat %lu %u%c\n",
+            m->m_len += snprintf(bptr, M_FREEROOM(m),
+                                 "DCC CHAT chat %lu %u%c\n",
                                  (unsigned long)ntohl(so->so_faddr.s_addr),
                                  ntohs(so->so_fport), 1);
         } else if (sscanf(bptr, "DCC SEND %256s %u %u %u", buff, &laddr, &lport,
@@ -773,8 +774,8 @@ int tcp_emu(struct socket *so, struct mbuf *m)
                 return 1;
             }
             m->m_len = bptr - m->m_data; /* Adjust length */
-            m->m_len +=
-                snprintf(bptr, m->m_size, "DCC SEND %s %lu %u %u%c\n", buff,
+            m->m_len += snprintf(bptr, M_FREEROOM(m),
+                         "DCC SEND %s %lu %u %u%c\n", buff,
                          (unsigned long)ntohl(so->so_faddr.s_addr),
                          ntohs(so->so_fport), n1, 1);
         } else if (sscanf(bptr, "DCC MOVE %256s %u %u %u", buff, &laddr, &lport,
@@ -784,8 +785,8 @@ int tcp_emu(struct socket *so, struct mbuf *m)
                 return 1;
             }
             m->m_len = bptr - m->m_data; /* Adjust length */
-            m->m_len +=
-                snprintf(bptr, m->m_size, "DCC MOVE %s %lu %u %u%c\n", buff,
+            m->m_len += snprintf(bptr, M_FREEROOM(m),
+                         "DCC MOVE %s %lu %u %u%c\n", buff,
                          (unsigned long)ntohl(so->so_faddr.s_addr),
                          ntohs(so->so_fport), n1, 1);
         }
