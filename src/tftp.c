@@ -344,8 +344,13 @@ static void tftp_handle_rrq(Slirp *slirp, struct sockaddr_storage *srcsas,
     k += 6; /* skipping octet */
 
     /* do sanity checks on the filename */
-    if (!strncmp(req_fname, "../", 3) ||
-        req_fname[strlen(req_fname) - 1] == '/' || strstr(req_fname, "/../")) {
+    if (
+#ifdef G_OS_WIN32
+        strstr(req_fname, "..\\") ||
+        req_fname[strlen(req_fname) - 1] == '\\' ||
+#endif
+        strstr(req_fname, "../") ||
+        req_fname[strlen(req_fname) - 1] == '/') {
         tftp_send_error(spt, 2, "Access violation", tp);
         return;
     }
