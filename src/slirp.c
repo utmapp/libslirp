@@ -278,6 +278,9 @@ Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
     g_return_val_if_fail(cfg->if_mtu <= IF_MTU_MAX, NULL);
     g_return_val_if_fail(cfg->if_mru >= IF_MRU_MIN || cfg->if_mru == 0, NULL);
     g_return_val_if_fail(cfg->if_mru <= IF_MRU_MAX, NULL);
+    g_return_val_if_fail(!cfg->bootfile ||
+                         (strlen(cfg->bootfile) <
+                          G_SIZEOF_MEMBER(struct bootp_t, bp_file)), NULL);
 
     slirp = g_malloc0(sizeof(Slirp));
 
