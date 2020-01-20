@@ -61,6 +61,10 @@
     })
 #endif
 
+#ifndef G_SIZEOF_MEMBER
+#define G_SIZEOF_MEMBER(type, member) sizeof(((type *)0)->member)
+#endif
+
 #if defined(_WIN32) /* CONFIG_IOVEC */
 #if !defined(IOV_MAX) /* XXX: to avoid duplicate with QEMU osdep.h */
 struct iovec {
