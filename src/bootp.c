@@ -255,7 +255,7 @@ static void bootp_reply(Slirp *slirp, const struct bootp_t *bp)
         }
 
         if (slirp->bootp_filename)
-            snprintf((char *)rbp->bp_file, sizeof(rbp->bp_file), "%s",
+            snprintf(rbp->bp_file, sizeof(rbp->bp_file), "%s",
                      slirp->bootp_filename);
 
         *q++ = RFC2132_SRV_ID;
