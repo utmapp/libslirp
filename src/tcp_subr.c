@@ -575,6 +575,9 @@ uint8_t tcp_tos(struct socket *so)
  * more checks are needed here
  *
  * XXX Assumes the whole command came in one packet
+ * XXX If there is more than one command in the packet, the others may
+ * be truncated.
+ * XXX If the command is too long, it may be truncated.
  *
  * XXX Some ftp clients will have their TOS set to
  * LOWDELAY and so Nagel will kick in.  Because of this,
