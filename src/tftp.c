@@ -193,8 +193,7 @@ static int tftp_send_oack(struct tftp_session *spt, const char *keys[],
              1;
     }
 
-    m->m_len = sizeof(struct tftp_t) - (TFTP_BLOCKSIZE_MAX + 2) + n -
-               sizeof(struct udphdr);
+    m->m_len = G_SIZEOF_MEMBER(struct tftp_t, tp_op) + n;
     tftp_udp_output(spt, m, recv_tp);
 
     return 0;
