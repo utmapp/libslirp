@@ -320,7 +320,7 @@ char *slirp_connection_info(Slirp *slirp)
             dst_addr = so->so_faddr;
             dst_port = so->so_fport;
         }
-        snprintf(buf, sizeof(buf), "  TCP[%s]", state);
+        slirp_fmt0(buf, sizeof(buf), "  TCP[%s]", state);
         g_string_append_printf(str, "%-19s %3d %15s %5d ", buf, so->s,
                                src.sin_addr.s_addr ? inet_ntoa(src.sin_addr) :
                                                      "*",
@@ -332,14 +332,14 @@ char *slirp_connection_info(Slirp *slirp)
 
     for (so = slirp->udb.so_next; so != &slirp->udb; so = so->so_next) {
         if (so->so_state & SS_HOSTFWD) {
-            snprintf(buf, sizeof(buf), "  UDP[HOST_FORWARD]");
+            slirp_fmt0(buf, sizeof(buf), "  UDP[HOST_FORWARD]");
             src_len = sizeof(src);
             getsockname(so->s, (struct sockaddr *)&src, &src_len);
             dst_addr = so->so_laddr;
             dst_port = so->so_lport;
         } else {
-            snprintf(buf, sizeof(buf), "  UDP[%d sec]",
-                     (so->so_expire - curtime) / 1000);
+            slirp_fmt0(buf, sizeof(buf), "  UDP[%d sec]",
+                       (so->so_expire - curtime) / 1000);
             src.sin_addr = so->so_laddr;
             src.sin_port = so->so_lport;
             dst_addr = so->so_faddr;
@@ -355,8 +355,8 @@ char *slirp_connection_info(Slirp *slirp)
     }
 
     for (so = slirp->icmp.so_next; so != &slirp->icmp; so = so->so_next) {
-        snprintf(buf, sizeof(buf), "  ICMP[%d sec]",
-                 (so->so_expire - curtime) / 1000);
+        slirp_fmt0(buf, sizeof(buf), "  ICMP[%d sec]",
+                   (so->so_expire - curtime) / 1000);
         src.sin_addr = so->so_laddr;
         dst_addr = so->so_faddr;
         g_string_append_printf(str, "%-19s %3d %15s  -    ", buf, so->s,
