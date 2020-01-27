@@ -364,3 +364,65 @@ void slirp_pstrcpy(char *buf, int buf_size, const char *str)
     }
     *q = '\0';
 }
+
+static int slirp_vsnprintf(char *str, size_t size,
+                           const char *format, va_list args)
+{
+    int rv = vsnprintf(str, size, format, args);
+
+    if (rv < 0) {
+        g_error("vsnprintf() failed: %s", g_strerror(errno));
+    }
+
+    return rv;
+}
+
+/*
+ * A snprintf()-like function that:
+ * - returns the number of bytes written (excluding optional \0-ending)
+ * - dies on error
+ * - warn on truncation
+ */
+int slirp_fmt(char *str, size_t size, const char *format, ...)
+{
+    va_list args;
+    int rv;
+
+    va_start(args, format);
+    rv = slirp_vsnprintf(str, size, format, args);
+    va_end(args);
+
+    if (rv > size) {
+        g_critical("vsnprintf() truncation");
+    }
+
+    return MIN(rv, size);
+}
+
+/*
+ * A snprintf()-like function that:
+ * - always \0-end (unless size == 0)
+ * - returns the number of bytes actually written, including \0 ending
+ * - dies on error
+ * - warn on truncation
+ */
+int slirp_fmt0(char *str, size_t size, const char *format, ...)
+{
+    va_list args;
+    int rv;
+
+    va_start(args, format);
+    rv = slirp_vsnprintf(str, size, format, args);
+    va_end(args);
+
+    if (rv >= size) {
+        g_critical("vsnprintf() truncation");
+        if (size > 0)
+            str[size - 1] = '\0';
+        rv = size;
+    } else {
+        rv += 1; /* include \0 */
+    }
+
+    return rv;
+}
