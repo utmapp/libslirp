@@ -965,9 +965,8 @@ int tcp_ctl(struct socket *so)
             }
         }
     }
-    sb->sb_cc =
-        snprintf(sb->sb_wptr, sb->sb_datalen - (sb->sb_wptr - sb->sb_data),
-                 "Error: No application configured.\r\n");
+    sb->sb_cc = slirp_fmt(sb->sb_wptr, sb->sb_datalen - (sb->sb_wptr - sb->sb_data),
+                          "Error: No application configured.\r\n");
     sb->sb_wptr += sb->sb_cc;
     return 0;
 }
