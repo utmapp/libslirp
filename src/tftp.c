@@ -185,12 +185,8 @@ static int tftp_send_oack(struct tftp_session *spt, const char *keys[],
 
     tp->tp_op = htons(TFTP_OACK);
     for (i = 0; i < nb; i++) {
-        n += snprintf(tp->x.tp_buf + n, sizeof(tp->x.tp_buf) - n, "%s",
-                      keys[i]) +
-             1;
-        n += snprintf(tp->x.tp_buf + n, sizeof(tp->x.tp_buf) - n, "%u",
-                      values[i]) +
-             1;
+        n += slirp_fmt0(tp->x.tp_buf + n, sizeof(tp->x.tp_buf) - n, "%s", keys[i]);
+        n += slirp_fmt0(tp->x.tp_buf + n, sizeof(tp->x.tp_buf) - n, "%u", values[i]);
     }
 
     m->m_len = G_SIZEOF_MEMBER(struct tftp_t, tp_op) + n;
