@@ -368,10 +368,10 @@ void slirp_pstrcpy(char *buf, int buf_size, const char *str)
 static int slirp_vsnprintf(char *str, size_t size,
                            const char *format, va_list args)
 {
-    int rv = vsnprintf(str, size, format, args);
+    int rv = g_vsnprintf(str, size, format, args);
 
     if (rv < 0) {
-        g_error("vsnprintf() failed: %s", g_strerror(errno));
+        g_error("g_vsnprintf() failed: %s", g_strerror(errno));
     }
 
     return rv;

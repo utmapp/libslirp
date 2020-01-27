@@ -642,7 +642,7 @@ int tcp_emu(struct socket *so, struct mbuf *m)
                 }
                 NTOHS(n1);
                 NTOHS(n2);
-                m_inc(m, snprintf(NULL, 0, "%d,%d\r\n", n1, n2) + 1);
+                m_inc(m, g_snprintf(NULL, 0, "%d,%d\r\n", n1, n2) + 1);
                 m->m_len = slirp_fmt(m->m_data, M_ROOM(m), "%d,%d\r\n", n1, n2);
             } else {
                 *eol = '\r';
