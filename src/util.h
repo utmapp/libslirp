@@ -24,6 +24,8 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
+#include <glib.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -181,7 +183,7 @@ static inline int slirp_socket_set_fast_reuse(int fd)
 
 void slirp_pstrcpy(char *buf, int buf_size, const char *str);
 
-int slirp_fmt(char *str, size_t size, const char *format, ...);
-int slirp_fmt0(char *str, size_t size, const char *format, ...);
+int slirp_fmt(char *str, size_t size, const char *format, ...) G_GNUC_PRINTF(3, 4);
+int slirp_fmt0(char *str, size_t size, const char *format, ...) G_GNUC_PRINTF(3, 4);
 
 #endif
