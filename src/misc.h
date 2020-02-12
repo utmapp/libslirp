@@ -67,4 +67,6 @@ struct gfwd_list *add_unix(struct gfwd_list **ex_ptr, const char *unixsock,
 
 int remove_guestfwd(struct gfwd_list **ex_ptr, struct in_addr addr, int port);
 
+int slirp_bind_outbound(struct socket *so, unsigned short af);
+
 #endif

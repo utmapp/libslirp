@@ -368,3 +368,23 @@ char *slirp_connection_info(Slirp *slirp)
 
     return g_string_free(str, FALSE);
 }
+
+int slirp_bind_outbound(struct socket *so, unsigned short af)
+{
+    int ret = 0;
+    struct sockaddr *addr = NULL;
+    int addr_size = 0;
+
+    if (af == AF_INET && so->slirp->outbound_addr != NULL) {
+        addr = (struct sockaddr *)so->slirp->outbound_addr;
+        addr_size = sizeof(struct sockaddr_in);
+    } else if (af == AF_INET6 && so->slirp->outbound_addr6 != NULL) {
+        addr = (struct sockaddr *)so->slirp->outbound_addr6;
+        addr_size = sizeof(struct sockaddr_in6);
+    }
+
+    if (addr != NULL) {
+        ret = bind(so->s, addr, addr_size);
+    }
+    return ret;
+}

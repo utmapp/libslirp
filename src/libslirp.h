@@ -67,7 +67,7 @@ typedef struct SlirpCb {
 } SlirpCb;
 
 #define SLIRP_CONFIG_VERSION_MIN 1
-#define SLIRP_CONFIG_VERSION_MAX 1
+#define SLIRP_CONFIG_VERSION_MAX 2
 
 typedef struct SlirpConfig {
     /* Version must be provided */
@@ -107,6 +107,8 @@ typedef struct SlirpConfig {
     /*
      * Fields introduced in SlirpConfig version 2 begin
      */
+    struct sockaddr_in *outbound_addr;
+    struct sockaddr_in6 *outbound_addr6;
 } SlirpConfig;
 
 Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks,

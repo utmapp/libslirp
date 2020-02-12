@@ -407,6 +407,16 @@ int tcp_fconnect(struct socket *so, unsigned short af)
 
     ret = so->s = slirp_socket(af, SOCK_STREAM, 0);
     if (ret >= 0) {
+        ret = slirp_bind_outbound(so, af);
+        if (ret < 0) {
+            // bind failed - close socket
+            closesocket(so->s);
+            so->s = -1;
+            return (ret);
+        }
+    }
+
+    if (ret >= 0) {
         int opt, s = so->s;
         struct sockaddr_storage addr;
 
