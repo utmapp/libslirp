@@ -326,6 +326,13 @@ Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
     slirp->disable_host_loopback = cfg->disable_host_loopback;
     slirp->enable_emu = cfg->enable_emu;
 
+    if (cfg->version >= 2) {
+        slirp->outbound_addr = cfg->outbound_addr;
+        slirp->outbound_addr6 = cfg->outbound_addr6;
+    } else {
+        slirp->outbound_addr = NULL;
+        slirp->outbound_addr6 = NULL;
+    }
     return slirp;
 }
 
