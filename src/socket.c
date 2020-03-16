@@ -824,7 +824,6 @@ void sofwdrain(struct socket *so)
  */
 int sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
 {
-    int rc = 0;
     Slirp *slirp = so->slirp;
     struct sockaddr_in *sin = (struct sockaddr_in *)addr;
     struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)addr;
@@ -836,13 +835,12 @@ int sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
             /* It's an alias */
             if (so->so_faddr.s_addr == slirp->vnameserver_addr.s_addr) {
                 if (get_dns_addr(&sin->sin_addr) >= 0) {
-                    goto ret;
+                    return 0;
                 }
             }
             if (slirp->disable_host_loopback) {
-                rc = -1;
                 errno = EPERM;
-                goto ret;
+                return -1;
             } else {
                 sin->sin_addr = loopback_addr;
             }
@@ -858,13 +856,12 @@ int sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
                 uint32_t scope_id;
                 if (get_dns6_addr(&sin6->sin6_addr, &scope_id) >= 0) {
                     sin6->sin6_scope_id = scope_id;
-                    goto ret;
+                    return 0;
                 }
             }
             if (slirp->disable_host_loopback) {
-                rc = -1;
                 errno = EPERM;
-                goto ret;
+                return -1;
             } else {
                 sin6->sin6_addr = in6addr_loopback;
             }
@@ -877,8 +874,8 @@ int sotranslate_out(struct socket *so, struct sockaddr_storage *addr)
     default:
         break;
     }
-ret:
-    return rc;
+
+    return 0;
 }
 
 void sotranslate_in(struct socket *so, struct sockaddr_storage *addr)
