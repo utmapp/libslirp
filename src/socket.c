@@ -824,9 +824,7 @@ static bool sotranslate_out4(Slirp *s, struct socket *so, struct sockaddr_in *si
     if ((so->so_faddr.s_addr & s->vnetwork_mask.s_addr) ==
         s->vnetwork_addr.s_addr) {
         if (so->so_faddr.s_addr == s->vnameserver_addr.s_addr) {
-            if (get_dns_addr(&sin->sin_addr) >= 0) {
-                return true;
-            }
+            return get_dns_addr(&sin->sin_addr) >= 0;
         }
         if (s->disable_host_loopback) {
             return false;
@@ -845,9 +843,7 @@ static bool sotranslate_out6(Slirp *s, struct socket *so, struct sockaddr_in6 *s
 {
     if (in6_equal_net(&so->so_faddr6, &s->vprefix_addr6, s->vprefix_len)) {
         if (in6_equal(&so->so_faddr6, &s->vnameserver_addr6)) {
-            if (get_dns6_addr(&sin->sin6_addr, &sin->sin6_scope_id) >= 0) {
-                return true;
-            }
+            return get_dns6_addr(&sin->sin6_addr, &sin->sin6_scope_id) >= 0;
         }
         if (s->disable_host_loopback) {
             return false;
