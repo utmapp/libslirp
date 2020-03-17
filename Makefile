@@ -5,6 +5,7 @@ LIBSLIRP = $(BUILD_DIR)/libslirp.a
 SLIRP_MAJOR_VERSION = 4
 SLIRP_MINOR_VERSION = 2
 SLIRP_MICRO_VERSION = 0
+SLIRP_VERSION_STRING = "$(SLIRP_MAJOR_VERSION).$(SLIRP_MINOR_VERSION).$(SLIRP_MICRO_VERSION)-git"
 
 all: $(LIBSLIRP)
 
@@ -27,7 +28,8 @@ $(BUILD_DIR)/src/libslirp-version.h:
 	$(call quiet-command,cat $(ROOT_DIR)/src/libslirp-version.h.in | \
 		sed 's/@SLIRP_MAJOR_VERSION@/$(SLIRP_MAJOR_VERSION)/' | \
 		sed 's/@SLIRP_MINOR_VERSION@/$(SLIRP_MINOR_VERSION)/' | \
-		sed 's/@SLIRP_MICRO_VERSION@/$(SLIRP_MICRO_VERSION)/' \
+		sed 's/@SLIRP_MICRO_VERSION@/$(SLIRP_MICRO_VERSION)/' | \
+		sed 's/@SLIRP_VERSION_STRING@/$(SLIRP_VERSION_STRING)/' \
 	> $@,"GEN","$@")
 
 $(OBJS): $(BUILD_DIR)/src/libslirp-version.h

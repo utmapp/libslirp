@@ -4,10 +4,11 @@ variables:
   DEPS: meson ninja-build make
         gcc pkg-config glib2-devel
         mingw64-gcc mingw64-pkg-config mingw64-glib2
-        clang-analyzer
+        clang-analyzer git-core
 
 before_script:
   - dnf install -y $DEPS
+  - git describe
 
 build:
   script:
