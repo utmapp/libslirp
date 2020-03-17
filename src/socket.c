@@ -840,7 +840,12 @@ static bool sotranslate_out4(Slirp *s, struct socket *so, struct sockaddr_in *si
 static bool sotranslate_out6(Slirp *s, struct socket *so, struct sockaddr_in6 *sin)
 {
     if (in6_equal(&so->so_faddr6, &s->vnameserver_addr6)) {
-        return get_dns6_addr(&sin->sin6_addr, &sin->sin6_scope_id) >= 0;
+        uint32_t scope_id;
+        if (get_dns6_addr(&sin->sin6_addr, &scope_id) >= 0) {
+            sin->sin6_scope_id = scope_id;
+            return true;
+        }
+        return false;
     }
 
     if (in6_equal_net(&so->so_faddr6, &s->vprefix_addr6, s->vprefix_len) ||
