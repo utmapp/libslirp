@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Fixed
+
 ## [v4.2.0] - 2020-03-17
 
 ### Added
@@ -72,7 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Standalone project, removing any QEMU dependency.
  - License clarifications.
 
-[unreleased]: https://gitlab.freedesktop.org/slirp/libslirp/compare/v4.1.0...master
+[unreleased]: https://gitlab.freedesktop.org/slirp/libslirp/compare/v4.2.0...master
 [4.2.0]: https://gitlab.freedesktop.org/slirp/libslirp/compare/v4.1.0...v4.2.0
 [4.1.0]: https://gitlab.freedesktop.org/slirp/libslirp/compare/v4.0.0...v4.1.0
 [4.0.0]: https://gitlab.freedesktop.org/slirp/libslirp/commits/v4.0.0
