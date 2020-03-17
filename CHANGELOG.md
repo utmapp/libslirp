@@ -5,22 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v4.2.0] - 2020-03-17
 
 ### Added
 
  - New API function `slirp_add_unix`: add a forward rule to a Unix socket.
  - New API function `slirp_remove_guestfwd`: remove a forward rule previously
    added by `slirp_add_exec`, `slirp_add_unix` or `slirp_add_guestfwd`
+ - New SlirpConfig.outbound_addr{,6} fields to bind output socket to a
+   specific address
 
 ### Changed
 
-### Deprecated
+ - socket: do not fallback on host loopback if get_dns_addr() failed
+   or the address is in slirp network
 
 ### Fixed
 
  - ncsi: fix checksum OOB memory access
  - `tcp_emu()`: fix OOB accesses
+ - tftp: restrict relative path access
+ - state: fix loading of guestfwd state
 
 ## [4.1.0] - 2019-12-02
 
@@ -68,5 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - License clarifications.
 
 [unreleased]: https://gitlab.freedesktop.org/slirp/libslirp/compare/v4.1.0...master
+[4.2.0]: https://gitlab.freedesktop.org/slirp/libslirp/compare/v4.1.0...v4.2.0
 [4.1.0]: https://gitlab.freedesktop.org/slirp/libslirp/compare/v4.0.0...v4.1.0
 [4.0.0]: https://gitlab.freedesktop.org/slirp/libslirp/commits/v4.0.0
