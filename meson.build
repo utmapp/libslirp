@@ -1,7 +1,8 @@
 project('libslirp', 'c',
   version : run_command('build-aux/git-version-gen', '@0@/.tarball-version'.format(meson.source_root()), check : true).stdout().strip(),
   license : 'BSD-3-Clause',
-  default_options : ['warning_level=1', 'c_std=gnu99']
+  default_options : ['warning_level=1', 'c_std=gnu99'],
+  meson_version : '>= 0.49',
 )
 
 meson.add_dist_script('build-aux/meson-dist', meson.project_version(), meson.source_root())
