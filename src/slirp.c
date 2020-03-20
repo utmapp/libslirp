@@ -29,6 +29,11 @@
 #include <net/if.h>
 #endif
 
+/* https://gitlab.freedesktop.org/slirp/libslirp/issues/18 */
+#if defined(__NetBSD__) && defined(if_mtu)
+#undef if_mtu
+#endif
+
 int slirp_debug;
 
 /* Define to 1 if you want KEEPALIVE timers */
