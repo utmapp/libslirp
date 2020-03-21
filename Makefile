@@ -23,7 +23,7 @@ override CFLAGS +=					\
 	-MMD -MP
 override LDFLAGS += $(shell $(PKG_CONFIG) --libs glib-2.0)
 
-$(BUILD_DIR)/src/libslirp-version.h:
+$(BUILD_DIR)/src/libslirp-version.h: Makefile
 	@$(MKDIR_P) $(dir $@)
 	$(call quiet-command,cat $(ROOT_DIR)/src/libslirp-version.h.in | \
 		sed 's/@SLIRP_MAJOR_VERSION@/$(SLIRP_MAJOR_VERSION)/' | \
