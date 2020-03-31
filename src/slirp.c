@@ -59,7 +59,7 @@ static unsigned dns6_addr_time;
 /* for the aging of certain requests like DNS */
 #define TIMEOUT_DEFAULT 1000 /* milliseconds */
 
-#ifdef _WIN32
+#if defined(_WIN32)
 
 int get_dns_addr(struct in_addr *pdns_addr)
 {
@@ -116,7 +116,104 @@ static void winsock_cleanup(void)
     WSACleanup();
 }
 
-#else
+#elif defined(__APPLE__)
+
+#include <resolv.h>
+
+static int get_dns_addr_cached(void *pdns_addr, void *cached_addr,
+                               socklen_t addrlen, unsigned *cached_time)
+{
+    struct stat old_stat;
+    if (curtime - *cached_time < TIMEOUT_DEFAULT) {
+        memcpy(pdns_addr, cached_addr, addrlen);
+        return 0;
+    }
+    return 1;
+}
+
+static int get_dns_addr_libresolv(int af, void *pdns_addr, void *cached_addr,
+                                  socklen_t addrlen, uint32_t *scope_id,
+                                  unsigned *cached_time)
+{
+    char buff[512];
+    struct __res_state state;
+    union res_sockaddr_union servers[NI_MAXSERV];
+    int count;
+    int found;
+
+    if (res_ninit(&state) != 0) {
+        return -1;
+    }
+
+    count = res_getservers(&state, servers, NI_MAXSERV);
+    found = 0;
+    DEBUG_MISC("IP address of your DNS(s):");
+    for (int i = 0; i < count; i++) {
+        if (af == servers[i].sin.sin_family) {
+            found++;
+        }
+
+        // we use the first found entry
+        if (found == 1) {
+            memcpy(pdns_addr, &servers[i].sin.sin_addr, addrlen);
+            memcpy(cached_addr, &servers[i].sin.sin_addr, addrlen);
+            if (scope_id) {
+                *scope_id = 0;
+            }
+            *cached_time = curtime;
+        }
+
+        if (found > 3) {
+            DEBUG_MISC("  (more)");
+            break;
+        } else if (slirp_debug & DBG_MISC) {
+            char s[INET6_ADDRSTRLEN];
+            const char *res = inet_ntop(servers[i].sin.sin_family,
+                                        &servers[i].sin.sin_addr,
+                                        s,
+                                        sizeof(s));
+            if (!res) {
+                res = "  (string conversion error)";
+            }
+            DEBUG_MISC("  %s", res);
+        }
+    }
+
+    res_nclose(&state);
+    if (!found)
+        return -1;
+    return 0;
+}
+
+int get_dns_addr(struct in_addr *pdns_addr)
+{
+    if (dns_addr.s_addr != 0) {
+        int ret;
+        ret = get_dns_addr_cached(pdns_addr, &dns_addr, sizeof(dns_addr),
+                                  &dns_addr_time);
+        if (ret <= 0) {
+            return ret;
+        }
+    }
+    return get_dns_addr_libresolv(AF_INET, pdns_addr, &dns_addr,
+                                  sizeof(dns_addr), NULL, &dns_addr_time);
+}
+
+int get_dns6_addr(struct in6_addr *pdns6_addr, uint32_t *scope_id)
+{
+    if (!in6_zero(&dns6_addr)) {
+        int ret;
+        ret = get_dns_addr_cached(pdns6_addr, &dns6_addr, sizeof(dns6_addr),
+                                  &dns6_addr_time);
+        if (ret <= 0) {
+            return ret;
+        }
+    }
+    return get_dns_addr_libresolv(AF_INET6, pdns6_addr, &dns6_addr,
+                                  sizeof(dns6_addr), scope_id, &dns6_addr_time);
+}
+
+#else // !defined(_WIN32) && !defined(__APPLE__)
 
 static int get_dns_addr_cached(void *pdns_addr, void *cached_addr,
                                socklen_t addrlen, struct stat *cached_stat,

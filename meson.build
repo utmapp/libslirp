@@ -50,6 +50,10 @@ if host_system == 'windows'
     cc.find_library('ws2_32'),
     cc.find_library('iphlpapi')
   ]
+elif host_system == 'darwin'
+  platform_deps += [
+    cc.find_library('resolv')
+  ]
 endif
 
 cargs = [
@@ -91,7 +95,11 @@ sources = [
 ]
 
 mapfile = 'src/libslirp.map'
-vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
+vflag = []
+vflag_test = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
+if cc.has_link_argument(vflag_test)
+  vflag += vflag_test
+endif
 
 configure_file(
   input : 'src/libslirp-version.h.in',
