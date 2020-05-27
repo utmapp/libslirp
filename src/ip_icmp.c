@@ -277,8 +277,8 @@ void icmp_send_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
     ip = mtod(msrc, struct ip *);
     if (slirp_debug & DBG_MISC) {
         char bufa[20], bufb[20];
-        strcpy(bufa, inet_ntoa(ip->ip_src));
-        strcpy(bufb, inet_ntoa(ip->ip_dst));
+        slirp_pstrcpy(bufa, sizeof(bufa), inet_ntoa(ip->ip_src));
+        slirp_pstrcpy(bufb, sizeof(bufb), inet_ntoa(ip->ip_dst));
         DEBUG_MISC(" %.16s to %.16s", bufa, bufb);
     }
     if (ip->ip_off & IP_OFFMASK)
