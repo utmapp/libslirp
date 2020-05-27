@@ -329,6 +329,7 @@ struct socket *udp_listen(Slirp *slirp, uint32_t haddr, unsigned hport,
     struct socket *so;
     socklen_t addrlen = sizeof(struct sockaddr_in);
 
+    memset(&addr, 0, sizeof(addr));
     so = socreate(slirp);
     so->s = slirp_socket(AF_INET, SOCK_DGRAM, 0);
     if (so->s < 0) {
