@@ -75,8 +75,11 @@ void icmp_init(Slirp *slirp)
 
 void icmp_cleanup(Slirp *slirp)
 {
-    while (slirp->icmp.so_next != &slirp->icmp) {
-        icmp_detach(slirp->icmp.so_next);
+    struct socket *so, *so_next;
+
+    for (so = slirp->icmp.so_next; so != &slirp->icmp; so = so_next) {
+        so_next = so->so_next;
+        icmp_detach(so);
     }
 }
 
